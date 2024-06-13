@@ -13,7 +13,7 @@ use syn::{parse_macro_input, Data, DeriveInput, Fields};
 // macros on fields?
 
 /// Add a `__dir__` method to the struct in a `#[pymethods]` impl
-#[proc_macro_derive(DirHelper)]
+#[proc_macro_derive(DirHelper, attributes(skip))]
 pub fn dir_helper_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
@@ -29,23 +29,35 @@ pub fn dir_helper_derive(input: TokenStream) -> TokenStream {
                     let field_names = fields
                         .named
                         .iter()
+                        .filter(|f| !f.attrs.iter().any(|attr| attr.path().is_ident("skip")))
                         .map(|f| f.ident.as_ref().unwrap())
                         .collect::<Vec<_>>();
 
-                    // Prepare an array where the elements are expressions that prepare the field vec
-                    let mut assigner = proc_macro2::TokenStream::new();
-                    quote_into::quote_into!(assigner += [#{
-                        for name in field_names {
-                            quote_into::quote_into!(assigner += (names.push(stringify!(#name).to_string())),)
+                    if field_names.is_empty() {
+                        quote! {
+                            #[pyo3::pymethods]
+                            impl #name {
+                                pub fn __dir__(&self) -> Vec<String> {
+                                    Vec::new()
+                                }
+                            }
                         }
-                    }];);
-                    quote! {
-                        #[pyo3::pymethods]
-                        impl #name {
-                            pub fn __dir__(&self) -> Vec<String> {
-                                let mut names = Vec::new();
-                                #assigner
-                                names
+                    } else {
+                        // Prepare an array where the elements are expressions that prepare the field vec
+                        let mut assigner = proc_macro2::TokenStream::new();
+                        quote_into::quote_into!(assigner += [#{
+                            for name in field_names {
+                                quote_into::quote_into!(assigner += (names.push(stringify!(#name).to_string())),)
+                            }
+                        }];);
+                        quote! {
+                            #[pyo3::pymethods]
+                            impl #name {
+                                pub fn __dir__(&self) -> Vec<String> {
+                                    let mut names = Vec::new();
+                                    #assigner
+                                    names
+                                }
                             }
                         }
                     }
