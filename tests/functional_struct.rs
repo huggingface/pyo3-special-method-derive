@@ -26,31 +26,31 @@ fn test_with_dir() {
 
 #[test]
 fn test_with_str() {
+    let pi = std::f32::consts::PI;
     let res = WithFields {
         dora: 299792458,
         my: "Hello world".to_string(),
-        name: 3.14159,
+        name: pi,
     }
     .__str__();
-    // TODO: Is this a good __str__ output? How can we better show it or should they be different?
     assert_eq!(
-        "WithFields(dora=`299792458`, my=`Hello world`, name=`3.14159`)",
-        &res
+        format!("WithFields(dora=299792458, my=\"Hello world\", name={pi})"),
+        res
     );
 }
 
 #[test]
 fn test_with_repr() {
+    let pi = std::f32::consts::PI;
     let res = WithFields {
         dora: 299792458,
         my: "Hello world".to_string(),
-        name: 3.14159,
+        name: pi,
     }
     .__repr__();
-    // TODO: Is this a good __repr__ output? How can we better show it or should they be different?
     assert_eq!(
-        "WithFields(dora=299792458, my=\"Hello world\", name=3.14159)",
-        &res
+        format!("WithFields(dora=299792458, my=\"Hello world\", name={pi})"),
+        res
     );
 }
 
