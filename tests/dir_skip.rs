@@ -25,7 +25,7 @@ fn test_with_dir_skip() {
 #[pyclass]
 #[derive(DirHelper)]
 #[allow(dead_code)]
-struct WithAllFieldsSkiped {
+struct WithAllFieldsSkipped {
     #[skip]
     dora: u32,
     #[skip]
@@ -36,7 +36,7 @@ struct WithAllFieldsSkiped {
 
 #[test]
 fn test_with_dir_all_skipped() {
-    let dir = WithAllFieldsSkiped {
+    let dir = WithAllFieldsSkipped {
         dora: 0,
         my: "".to_string(),
         name: 0.0,
