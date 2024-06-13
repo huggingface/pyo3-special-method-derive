@@ -1,4 +1,15 @@
-//! Derive macros to help with Python
+//! Derive macros to help with Rust PyO3 support.
+//!
+//! This crate automatically derives the following functions for structs and enums:
+//! - `__str__`
+//! - `__repr__`
+//! - `__dir__`
+//!
+//! Note: The `StrReprHelper` macro requires `T: Debug` for each `T` inside the item.
+//! The `Debug` trait is used for the outputs.
+//!
+//! You can skip exposure of variants with the `#[test]`
+//!
 
 extern crate proc_macro;
 use dir::get_dir_enum_variants;
@@ -17,7 +28,22 @@ mod str_repr;
 // TODO: We should have a skip attribute macro, similar to how serde has attribute
 // macros on fields?
 
-/// Add a `__dir__` method to the struct in a `#[pymethods]` impl
+/// Add a `__dir__` method to the struct in a `#[pymethods]` impl.
+/// You can skip exposure of certain fields by adding the `#[skip]` attribute macro.
+///
+/// ## Example
+/// ```
+/// use pyo3::pyclass;
+/// use pyo3_special_method_derive::DirHelper;
+/// #[pyclass]
+/// #[derive(DirHelper)]
+/// struct Person {
+///     name: String,
+///     address: String,
+///     #[skip]
+///     phone_number: String,
+/// }
+/// ```
 #[proc_macro_derive(DirHelper, attributes(skip))]
 pub fn dir_helper_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -113,7 +139,23 @@ pub fn dir_helper_derive(input: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
-/// Add `__str__` and `__repr__` methods to the struct in a `#[pymethods]` impl
+/// Add `__str__` and `__repr__` methods to the struct in a `#[pymethods]` impl.
+///
+/// You can skip printing of certain fields by adding the `#[skip]` attribute macro.
+///
+/// ## Example
+/// ```
+/// use pyo3::pyclass;
+/// use pyo3_special_method_derive::StrReprHelper;
+/// #[pyclass]
+/// #[derive(StrReprHelper)]
+/// struct Person {
+///     name: String,
+///     address: String,
+///     #[skip]
+///     phone_number: String,
+/// }
+/// ```
 #[proc_macro_derive(StrReprHelper, attributes(skip))]
 pub fn str_repr_helper_derive(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);

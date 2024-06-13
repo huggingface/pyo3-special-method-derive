@@ -2,24 +2,21 @@
 
 This crate enables you to automatically derive Python dunder methods for your Rust crate using PyO3.
 
-The following methods may be derived:
-- `__str__`
-- `__repr__`
-- `__dir__`
+## Key features
+- The following methods may be automatically derived
+    - `__str__`
+    - `__repr__`
+    - `__dir__`
+- Support for structs and enums (only unit and complex enums due to a PyO3 limitation)
+- Support for skipping variants or fields with the `#[skip]` attribute
+
+> Note: The `StrReprHelper` macro requires `T: Debug` for each `T` inside the item. The `Debug` trait is used for the outputs.
 
 Coming soon:
 - `__dict__`
-- Automatic derive of `Debug`/`Display` for broader `StrReprHelper` support
-- `skip` attribute macro to skip dir/str/repr output for certain fields:
-    ```rust
-    #[pyclass]
-    #[derive(DirHelper, StrReprHelper)]
-    struct Person {
-        name: String,
-        #[skip]
-        occupation: String,
-    }
-    ```
+- Automatic derive of `Debug` for broader `StrReprHelper` support
+- Automatically skip fields/variants if they are not `pub`.
+- Skip different fields/variants depending on `__str__` or `__repr__`.
 
 ## Example
 ```rust
