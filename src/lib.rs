@@ -1,15 +1,15 @@
 //! Derive macros to help with Rust PyO3 support.
-//! 
+//!
 //! This crate automatically derives the following functions for structs and enums:
 //! - `__str__`
 //! - `__repr__`
 //! - `__dir__`
-//! 
+//!
 //! Note: The `StrReprHelper` macro requires `T: Debug` for each `T` inside the item.
 //! The `Debug` trait is used for the outputs.
-//! 
+//!
 //! You can skip exposure of variants with the `#[test]`
-//! 
+//!
 
 extern crate proc_macro;
 use dir::get_dir_enum_variants;
