@@ -183,3 +183,96 @@ pub fn str_repr_helper_derive(input_stream: TokenStream) -> TokenStream {
 
     TokenStream::from(expanded)
 }
+
+#[proc_macro_derive(GetattrHelper)]
+pub fn getattr_helper_derive(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+
+    let name = &input.ident;
+
+    let expanded = match input.data {
+        Data::Struct(data) => {
+            match data.fields {
+                Fields::Named(fields) => {
+                    // If the struct has named fields extract their names
+                    let field_names = fields
+                        .named
+                        .iter()
+                        .filter(|f| matches!(f.vis, Visibility::Public(_)))
+                        .map(|f| f.ident.as_ref().unwrap())
+                        .collect::<Vec<_>>();
+                    let field_names_str = field_names
+                        .iter()
+                        .map(|f| f.to_string())
+                        .collect::<Vec<_>>();
+
+                    if field_names.is_empty() {
+                        quote! {
+                            #[pyo3::pymethods]
+                            impl #name {
+                                #[allow(non_snake_case)]
+                                pub fn __getattr__(&self, attr: String) -> pyo3::PyResult<pyo3::Py<pyo3::PyAny>> {
+                                    Err(pyo3::exceptions::PyAttributeError::new_err(format!("'{}' has no attribute '{attr}'", #name)))
+                                }
+                            }
+                        }
+                    } else {
+                        // Prepare an array where the elements are expressions that prepare the field vec
+                        let mut matchers = Vec::new();
+                        for (name, ident) in field_names_str.iter().zip(field_names) {
+                            let inner = quote! {
+                                #name => {
+                                    Ok(pyo3::Python::with_gil(|py| self.#ident.clone().into_py(py)))
+                                }
+                            };
+                            matchers.push(inner);
+                        }
+
+                        quote! {
+                            #[pyo3::pymethods]
+                            impl #name {
+                                #[allow(non_snake_case)]
+                                pub fn __getattr__(&self, attr: String) -> pyo3::PyResult<pyo3::Py<pyo3::PyAny>> {
+                                    use pyo3::IntoPy;
+
+                                    match attr.as_str() {
+                                        #(#matchers)*
+                                        name => Err(pyo3::exceptions::PyAttributeError::new_err(format!("'{}' has no attribute '{attr}'", stringify!(#name))))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                Fields::Unit => {
+                    // If the struct has no fields
+                    quote! {
+                        #[pyo3::pymethods]
+                        impl #name {
+                            #[allow(non_snake_case)]
+                            pub fn __getattr__(&self, attr: String) -> pyo3::PyResult<pyo3::Py<pyo3::PyAny>> {
+                                Err(pyo3::exceptions::PyAttributeError::new_err(format!("'{}' has no attribute '{attr}'", #name)))
+                            }
+                        }
+                    }
+                }
+                Fields::Unnamed(_) => {
+                    quote! {
+                        compile_error!("Unnamed fields for struct are not supported for DirHelper derive.");
+                    }
+                }
+            }
+        }
+        Data::Enum(_) => {
+            quote! {
+                compile_error!("Enums are not supported for GetattrHelper derive");
+            }
+        }
+        Data::Union(_) => {
+            quote! {
+                compile_error!("Unions are not supported for GetattrHelper derive");
+            }
+        }
+    };
+    expanded.into()
+}
