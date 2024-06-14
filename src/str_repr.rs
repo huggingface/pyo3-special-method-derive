@@ -2,10 +2,10 @@ use quote::quote;
 use syn::{DeriveInput, Fields, Ident, Visibility};
 
 macro_rules! create_body {
-    ($input:expr, $ident:expr) => {
+    ($input:expr, $ident:expr, $is_repr:expr) => {
         match &$input.data {
-            syn::Data::Struct(s) => generate_fmt_impl_for_struct(s),
-            syn::Data::Enum(e) => generate_fmt_impl_for_enum(e, $ident),
+            syn::Data::Struct(s) => generate_fmt_impl_for_struct(s, $is_repr),
+            syn::Data::Enum(e) => generate_fmt_impl_for_enum(e, $ident, $is_repr),
             syn::Data::Union(u) => {
                 let error = syn::Error::new_spanned(u.union_token, "Unions are not supported");
                 return proc_macro2::TokenStream::from(error.into_compile_error());
@@ -20,9 +20,9 @@ pub(crate) fn display_debug_derive(input: &DeriveInput) -> proc_macro2::TokenStr
     // Get the name of the struct
     let ident = &input.ident;
 
-    let body_display = create_body!(input, ident);
+    let body_display = create_body!(input, ident, false);
 
-    let body_debug = create_body!(input, ident);
+    let body_debug = create_body!(input, ident, true);
 
     if matches!(input.data, syn::Data::Struct(_)) {
         quote! {
@@ -65,11 +65,21 @@ pub(crate) fn display_debug_derive(input: &DeriveInput) -> proc_macro2::TokenStr
     }
 }
 
-fn generate_fmt_impl_for_struct(data_struct: &syn::DataStruct) -> Vec<proc_macro2::TokenStream> {
+fn generate_fmt_impl_for_struct(
+    data_struct: &syn::DataStruct,
+    is_repr: bool,
+) -> Vec<proc_macro2::TokenStream> {
     let fields = &data_struct.fields;
     let fields = fields
         .iter()
         .filter(|f| !f.attrs.iter().any(|attr| attr.path().is_ident("skip")))
+        .filter(|f| {
+            if is_repr {
+                !f.attrs.iter().any(|attr| attr.path().is_ident("skip_repr"))
+            } else {
+                !f.attrs.iter().any(|attr| attr.path().is_ident("skip_str"))
+            }
+        })
         .filter(|f| matches!(f.vis, Visibility::Public(_)))
         .collect::<Vec<_>>();
     let field_fmts = fields
@@ -98,12 +108,17 @@ fn generate_fmt_impl_for_struct(data_struct: &syn::DataStruct) -> Vec<proc_macro
 fn generate_fmt_impl_for_enum(
     data_enum: &syn::DataEnum,
     name: &Ident,
+    is_repr: bool,
 ) -> Vec<proc_macro2::TokenStream> {
     let variants = data_enum.variants.iter().collect::<Vec<_>>();
     variants.iter()
         .map(|variant| {
         let ident = &variant.ident;
-        let to_skip = variant.attrs.iter().any(|attr| attr.path().is_ident("skip"));
+        let to_skip = variant.attrs.iter().any(|attr| attr.path().is_ident("skip") || if is_repr {
+            attr.path().is_ident("skip_repr")
+        } else {
+            attr.path().is_ident("skip_str")
+        });
         match &variant.fields {
             Fields::Unit => {
                 if !to_skip {
