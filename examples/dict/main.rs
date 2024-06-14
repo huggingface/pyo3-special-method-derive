@@ -20,7 +20,7 @@ fn main() {
     }
     .__dict__();
 
-    let mut keys = res.keys().into_iter().cloned().collect::<Vec<_>>();
+    let mut keys = res.keys().cloned().collect::<Vec<_>>();
     keys.sort();
     let mut values = Vec::new();
     for k in &keys {
