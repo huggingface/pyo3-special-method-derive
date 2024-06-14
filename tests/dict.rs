@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use pyo3::{pyclass, types::PyAnyMethods, Python};
 use pyo3_special_method_derive::DictHelper;
 
@@ -14,23 +16,32 @@ struct Person {
 fn test_dict() {
     pyo3::prepare_freethreaded_python();
 
-    let res = Person {
-        name: "John Doe".to_string(),
-        address: "Address".to_string(),
-        location: "Earth".to_string(),
-    }
-    .__dict__();
+    Python::with_gil(|py| {
+        let res = pyo3::Py::new(
+            py,
+            Person {
+                name: "John Doe".to_string(),
+                address: "Address".to_string(),
+                location: "Earth".to_string(),
+            },
+        )
+        .unwrap();
 
-    let mut keys = res.keys().cloned().collect::<Vec<_>>();
-    keys.sort();
-    let mut values = Vec::new();
-    for k in &keys {
-        let v = res.get(k).unwrap();
-        values.push(Python::with_gil(|py| {
-            let py_any_ref = v.bind(py);
-            py_any_ref.extract::<String>().unwrap()
-        }));
-    }
-    assert_eq!(keys, vec!["address".to_string(), "name".to_string()]);
-    assert_eq!(values, vec!["Address".to_string(), "John Doe".to_string()]);
+        let dict = {
+            let py_any_ref = res.bind(py).getattr("__dict__").unwrap();
+            py_any_ref
+                .extract::<HashMap<String, pyo3::Py<pyo3::PyAny>>>()
+                .unwrap()
+        };
+
+        let mut keys = dict.keys().cloned().collect::<Vec<_>>();
+        keys.sort();
+        let mut values = Vec::new();
+        for k in &keys {
+            let v = dict.get(k).unwrap().bind(py);
+            values.push(v.extract::<String>().unwrap());
+        }
+        assert_eq!(keys, vec!["address".to_string(), "name".to_string()]);
+        assert_eq!(values, vec!["Address".to_string(), "John Doe".to_string()]);
+    });
 }

@@ -331,6 +331,7 @@ pub fn dict_helper_derive(input: TokenStream) -> TokenStream {
                             #[pyo3::pymethods]
                             impl #name {
                                 #[allow(non_snake_case)]
+                                #[getter]
                                 pub fn __dict__(&self) -> std::collections::HashMap<String, pyo3::Py<pyo3::PyAny>> {
                                     std::collections::HashMap::new()
                                 }
@@ -353,6 +354,7 @@ pub fn dict_helper_derive(input: TokenStream) -> TokenStream {
                             #[pyo3::pymethods]
                             impl #name {
                                 #[allow(non_snake_case)]
+                                #[getter]
                                 pub fn __dict__(&self) -> std::collections::HashMap<String, pyo3::Py<pyo3::PyAny>> {
                                     use pyo3::IntoPy;
 
@@ -370,6 +372,7 @@ pub fn dict_helper_derive(input: TokenStream) -> TokenStream {
                         #[pyo3::pymethods]
                         impl #name {
                             #[allow(non_snake_case)]
+                            #[getter]
                             pub fn __dict__(&self) -> std::collections::HashMap<String, pyo3::Py<pyo3::PyAny>> {
                                 std::collections::HashMap::new()
                             }
