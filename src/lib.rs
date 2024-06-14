@@ -31,7 +31,7 @@ mod str_repr;
 
 /// Add a `__dir__` method to the struct in a `#[pymethods]` impl.
 /// You can skip exposure of certain fields by adding the `#[skip]` attribute macro.
-/// For structs, this skips all fields which are not marked `pub`.
+/// For structs, all fields are skipped which are not marked `pub`.
 ///
 /// ## Example
 /// ```
@@ -145,7 +145,9 @@ pub fn dir_helper_derive(input: TokenStream) -> TokenStream {
 /// Add `__str__` and `__repr__` methods to the struct in a `#[pymethods]` impl.
 ///
 /// You can skip printing of certain fields by adding the `#[skip]` attribute macro.
-/// For structs, this skips all fields which are not marked `pub`.
+/// To specialze skipping depending on `__str__` and `__repr__`, you can use the `#[skip_str]`
+/// and `#[skip_repr]` attributes which skip for `__str__` and `__repr__` respectively.
+/// For structs, all fields are skipped which are not marked `pub`.
 ///
 /// ## Example
 /// ```
@@ -160,7 +162,7 @@ pub fn dir_helper_derive(input: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(StrReprHelper, attributes(skip))]
+#[proc_macro_derive(StrReprHelper, attributes(skip, skip_str, skip_repr))]
 pub fn str_repr_helper_derive(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
 
