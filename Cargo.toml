@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "Automatically derive Python dunder methods for your Rust code"
 license = "MIT"
+repository = "https://github.com/EricLBuehler/pyo3-special-method-derive"
 
 [dependencies]
 syn = "2.0.66"
