@@ -8,7 +8,8 @@
 //! Note: The `StrReprHelper` macro requires `T: Debug` for each `T` inside the item.
 //! The `Debug` trait is used for the outputs.
 //!
-//! You can skip exposure of variants with the `#[test]`
+//! - You can skip exposure of variants or fields with the `#[attr]`
+//! - Struct fields which are not `pub` are skipped automatically
 //!
 
 extern crate proc_macro;
@@ -154,7 +155,7 @@ pub fn dir_helper_derive(input: TokenStream) -> TokenStream {
 /// #[derive(StrReprHelper)]
 /// struct Person {
 ///     pub name: String,
-///     pub address: String,
+///     address: String,
 ///     #[skip]
 ///     pub phone_number: String,
 /// }
