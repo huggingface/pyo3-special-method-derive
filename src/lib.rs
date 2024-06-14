@@ -184,6 +184,22 @@ pub fn str_repr_helper_derive(input_stream: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
+/// Add `__getattr__` to a struct in a `#[pymethods]` impl.
+///
+/// - For structs, all fields are skipped which are not marked `pub`
+///
+/// ## Example
+/// ```
+/// use pyo3::pyclass;
+/// use pyo3_special_method_derive::GetattrHelper;
+/// #[pyclass]
+/// #[derive(GetattrHelper)]
+/// struct Person {
+///     pub name: String,
+///     address: String,
+///     pub phone_number: String,
+/// }
+/// ```
 #[proc_macro_derive(GetattrHelper)]
 pub fn getattr_helper_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
