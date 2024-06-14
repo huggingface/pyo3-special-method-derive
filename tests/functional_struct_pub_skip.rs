@@ -6,8 +6,8 @@ use pyo3_special_method_derive::{DirHelper, StrReprHelper};
 #[allow(dead_code)]
 struct WithFields {
     pub dora: u32,
-    pub my: String,
-    pub name: f32,
+    my: String,
+    name: f32,
 }
 
 #[test]
@@ -18,10 +18,7 @@ fn test_with_dir() {
         name: 0.0,
     }
     .__dir__();
-    assert_eq!(
-        vec!["dora".to_string(), "my".to_string(), "name".to_string()],
-        dir
-    );
+    assert_eq!(vec!["dora".to_string()], dir);
 }
 
 #[test]
@@ -33,10 +30,7 @@ fn test_with_str() {
         name: pi,
     }
     .__str__();
-    assert_eq!(
-        format!("WithFields(dora=299792458, my=\"Hello world\", name={pi})"),
-        res
-    );
+    assert_eq!(format!("WithFields(dora=299792458)"), res);
 }
 
 #[test]
@@ -48,10 +42,7 @@ fn test_with_repr() {
         name: pi,
     }
     .__repr__();
-    assert_eq!(
-        format!("WithFields(dora=299792458, my=\"Hello world\", name={pi})"),
-        res
-    );
+    assert_eq!(format!("WithFields(dora=299792458)"), res);
 }
 
 #[pyclass]

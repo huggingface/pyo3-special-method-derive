@@ -5,10 +5,10 @@ use pyo3_special_method_derive::DirHelper;
 #[derive(DirHelper)]
 #[allow(dead_code)]
 struct WithFieldSkip {
-    dora: u32,
-    my: String,
+    pub dora: u32,
+    pub my: String,
     #[skip]
-    name: f32,
+    pub name: f32,
 }
 
 #[test]
@@ -27,11 +27,11 @@ fn test_with_dir_skip() {
 #[allow(dead_code)]
 struct WithAllFieldsSkipped {
     #[skip]
-    dora: u32,
+    pub dora: u32,
     #[skip]
-    my: String,
+    pub my: String,
     #[skip]
-    name: f32,
+    pub name: f32,
 }
 
 #[test]
