@@ -8,16 +8,13 @@ This crate enables you to automatically derive Python dunder methods for your Ru
     - `__repr__`
     - `__dir__`
     - `__getattr__` (structs only)
+    - `__dict__` (structs only)
 - Support for structs and enums (only unit and complex enums due to a PyO3 limitation)
 - Support for skipping variants or fields with the `#[skip]` attribute
 - Automatically skip struct fields which are not `pub`
 - Support for skipping variants or fields for `__str__` or `__repr__` differently with the `#[skip_str]` and `#[skip_repr]` attributes
 
-> Note: The `StrReprHelper` macro requires `T: Debug` for each `T` inside the item. The `Debug` trait is used for the outputs.
-
-Coming soon:
-- `__dict__`
-- Automatic derive of `Debug` for broader `StrReprHelper` support
+> Note: When using the `StrReprHelper` macro. if `T` did not use `StrReprHelper`, it requires `T: Debug` for each `T` inside the item. The `Debug` trait is used for the outputs.
 
 ## Example
 ```rust

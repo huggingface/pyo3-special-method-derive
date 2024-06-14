@@ -5,8 +5,7 @@
 //! - `__repr__`
 //! - `__dir__`
 //!
-//! Note: The `StrReprHelper` macro requires `T: Debug` for each `T` inside the item.
-//! The `Debug` trait is used for the outputs.
+//! Note: When using the `StrReprHelper` macro. if `T` did not use `StrReprHelper`, it requires `T: Debug` for each `T` inside the item. The `Debug` trait is used for the outputs.
 //!
 //! - You can skip exposure of variants or fields with the `#[attr]` attribute
 //! - You can skip variants or fields for `__str__` or `__repr__` differently with the `#[skip_str]` and `#[skip_repr]` attributes
@@ -268,6 +267,114 @@ pub fn getattr_helper_derive(input: TokenStream) -> TokenStream {
                             #[allow(non_snake_case)]
                             pub fn __getattr__(&self, attr: String) -> pyo3::PyResult<pyo3::Py<pyo3::PyAny>> {
                                 Err(pyo3::exceptions::PyAttributeError::new_err(format!("'{}' has no attribute '{attr}'", #name)))
+                            }
+                        }
+                    }
+                }
+                Fields::Unnamed(_) => {
+                    quote! {
+                        compile_error!("Unnamed fields for struct are not supported for DirHelper derive.");
+                    }
+                }
+            }
+        }
+        Data::Enum(_) => {
+            quote! {
+                compile_error!("Enums are not supported for GetattrHelper derive");
+            }
+        }
+        Data::Union(_) => {
+            quote! {
+                compile_error!("Unions are not supported for GetattrHelper derive");
+            }
+        }
+    };
+    expanded.into()
+}
+
+/// Add `__getattr__` to a struct in a `#[pymethods]` impl.
+///
+/// - For structs, all fields are skipped which are not marked `pub`
+///
+/// ## Example
+/// ```
+/// use pyo3::pyclass;
+/// use pyo3_special_method_derive::GetattrHelper;
+/// #[pyclass]
+/// #[derive(GetattrHelper)]
+/// struct Person {
+///     pub name: String,
+///     address: String,
+///     pub phone_number: String,
+/// }
+/// ```
+#[proc_macro_derive(DictHelper)]
+pub fn dict_helper_derive(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+
+    let name = &input.ident;
+
+    let expanded = match input.data {
+        Data::Struct(data) => {
+            match data.fields {
+                Fields::Named(fields) => {
+                    // If the struct has named fields extract their names
+                    let field_names = fields
+                        .named
+                        .iter()
+                        .filter(|f| matches!(f.vis, Visibility::Public(_)))
+                        .map(|f| f.ident.as_ref().unwrap())
+                        .collect::<Vec<_>>();
+
+                    if field_names.is_empty() {
+                        quote! {
+                            #[pyo3::pymethods]
+                            impl #name {
+                                #[allow(non_snake_case)]
+                                #[getter]
+                                pub fn __dict__(&self) -> std::collections::HashMap<String, pyo3::Py<pyo3::PyAny>> {
+                                    std::collections::HashMap::new()
+                                }
+                            }
+                        }
+                    } else {
+                        // Prepare an array where the elements are expressions that prepare the field vec
+                        let mut inserter = Vec::new();
+                        for name in field_names {
+                            inserter.push(
+                                quote! {
+                                    values.insert(
+                                            stringify!(#name).to_string(), pyo3::Python::with_gil(|py| self.#name.clone().into_py(py))
+                                    );
+                                }
+                            );
+                        }
+
+                        quote! {
+                            #[pyo3::pymethods]
+                            impl #name {
+                                #[allow(non_snake_case)]
+                                #[getter]
+                                pub fn __dict__(&self) -> std::collections::HashMap<String, pyo3::Py<pyo3::PyAny>> {
+                                    use pyo3::IntoPy;
+
+                                    let mut values = std::collections::HashMap::new();
+                                    #(#inserter)*
+                                    values
+                                }
+                            }
+                        }
+                    }
+                }
+                Fields::Unit => {
+                    // If the struct has no fields
+                    quote! {
+                        #[pyo3::pymethods]
+                        impl #name {
+                            #[allow(non_snake_case)]
+                            #[getter]
+                            pub fn __dict__(&self) -> std::collections::HashMap<String, pyo3::Py<pyo3::PyAny>> {
+                                std::collections::HashMap::new()
                             }
                         }
                     }
