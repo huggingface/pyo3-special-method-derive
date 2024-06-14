@@ -8,7 +8,8 @@
 //! Note: The `StrReprHelper` macro requires `T: Debug` for each `T` inside the item.
 //! The `Debug` trait is used for the outputs.
 //!
-//! - You can skip exposure of variants or fields with the `#[attr]`
+//! - You can skip exposure of variants or fields with the `#[attr]` attribute
+//! - You can skip variants or fields for `__str__` or `__repr__` differently with the `#[skip_str]` and `#[skip_repr]` attributes
 //! - Struct fields which are not `pub` are skipped automatically
 //!
 
@@ -22,16 +23,10 @@ use syn::{parse_macro_input, Data, DeriveInput, Fields, Visibility};
 mod dir;
 mod str_repr;
 
-// TODO: We should only list fields which are at least readable by Python users.
-// This would require either reading the visibility modifier (easier) or checking
-// the `pyo3` getter.
-
-// TODO: We should have a skip attribute macro, similar to how serde has attribute
-// macros on fields?
-
 /// Add a `__dir__` method to the struct in a `#[pymethods]` impl.
-/// You can skip exposure of certain fields by adding the `#[skip]` attribute macro.
-/// For structs, all fields are skipped which are not marked `pub`.
+///
+/// - You can skip exposure of certain fields by adding the `#[skip]` attribute macro
+/// - For structs, all fields are skipped which are not marked `pub`
 ///
 /// ## Example
 /// ```
@@ -144,10 +139,10 @@ pub fn dir_helper_derive(input: TokenStream) -> TokenStream {
 
 /// Add `__str__` and `__repr__` methods to the struct in a `#[pymethods]` impl.
 ///
-/// You can skip printing of certain fields by adding the `#[skip]` attribute macro.
-/// To specialze skipping depending on `__str__` and `__repr__`, you can use the `#[skip_str]`
-/// and `#[skip_repr]` attributes which skip for `__str__` and `__repr__` respectively.
-/// For structs, all fields are skipped which are not marked `pub`.
+/// - You can skip printing of certain fields by adding the `#[skip]` attribute macro
+/// - To specialze skipping depending on `__str__` and `__repr__`, you can use the `#[skip_str]`
+/// and `#[skip_repr]` attributes which skip for `__str__` and `__repr__` respectively
+/// - For structs, all fields are skipped which are not marked `pub`
 ///
 /// ## Example
 /// ```
