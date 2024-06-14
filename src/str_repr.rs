@@ -1,5 +1,5 @@
 use quote::quote;
-use syn::{DeriveInput, Fields, Ident};
+use syn::{DeriveInput, Fields, Ident, Visibility};
 
 macro_rules! create_body {
     ($input:expr, $ident:expr) => {
@@ -70,13 +70,12 @@ fn generate_fmt_impl_for_struct(data_struct: &syn::DataStruct) -> Vec<proc_macro
     let fields = fields
         .iter()
         .filter(|f| !f.attrs.iter().any(|attr| attr.path().is_ident("skip")))
+        .filter(|f| matches!(f.vis, Visibility::Public(_)))
         .collect::<Vec<_>>();
     let field_fmts = fields
         .iter()
         .enumerate()
         .map(|(i, field)| {
-            // TODO: handle if debug. This may be checking visibility or only
-            // displaying user specified idents. For now, repr the fields in Debug.
             let postfix = if i + 1 < fields.len() { ", " } else { "" };
             match &field.ident {
                 Some(ident) => {

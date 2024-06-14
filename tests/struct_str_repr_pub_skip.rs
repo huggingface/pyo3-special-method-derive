@@ -6,7 +6,7 @@ use pyo3_special_method_derive::{DirHelper, StrReprHelper};
 #[allow(dead_code)]
 struct WithFields {
     pub dora: u32,
-    pub my: String,
+    my: String,
     #[skip]
     pub name: f32,
 }
@@ -19,7 +19,7 @@ fn test_with_str() {
         name: std::f32::consts::PI,
     }
     .__str__();
-    assert_eq!("WithFields(dora=299792458, my=\"Hello world\")", &res);
+    assert_eq!("WithFields(dora=299792458)", &res);
 }
 
 #[test]
@@ -30,5 +30,5 @@ fn test_with_repr() {
         name: std::f32::consts::PI,
     }
     .__repr__();
-    assert_eq!("WithFields(dora=299792458, my=\"Hello world\")", &res);
+    assert_eq!("WithFields(dora=299792458)", &res);
 }

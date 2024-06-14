@@ -8,7 +8,8 @@
 //! Note: The `StrReprHelper` macro requires `T: Debug` for each `T` inside the item.
 //! The `Debug` trait is used for the outputs.
 //!
-//! You can skip exposure of variants with the `#[test]`
+//! - You can skip exposure of variants or fields with the `#[attr]`
+//! - Struct fields which are not `pub` are skipped automatically
 //!
 
 extern crate proc_macro;
@@ -16,7 +17,7 @@ use dir::get_dir_enum_variants;
 use proc_macro::TokenStream;
 use quote::quote;
 use str_repr::display_debug_derive;
-use syn::{parse_macro_input, Data, DeriveInput, Fields};
+use syn::{parse_macro_input, Data, DeriveInput, Fields, Visibility};
 
 mod dir;
 mod str_repr;
@@ -30,6 +31,7 @@ mod str_repr;
 
 /// Add a `__dir__` method to the struct in a `#[pymethods]` impl.
 /// You can skip exposure of certain fields by adding the `#[skip]` attribute macro.
+/// For structs, this skips all fields which are not marked `pub`.
 ///
 /// ## Example
 /// ```
@@ -38,10 +40,10 @@ mod str_repr;
 /// #[pyclass]
 /// #[derive(DirHelper)]
 /// struct Person {
-///     name: String,
+///     pub name: String,
 ///     address: String,
 ///     #[skip]
-///     phone_number: String,
+///     pub phone_number: String,
 /// }
 /// ```
 #[proc_macro_derive(DirHelper, attributes(skip))]
@@ -61,6 +63,7 @@ pub fn dir_helper_derive(input: TokenStream) -> TokenStream {
                         .named
                         .iter()
                         .filter(|f| !f.attrs.iter().any(|attr| attr.path().is_ident("skip")))
+                        .filter(|f| matches!(f.vis, Visibility::Public(_)))
                         .map(|f| f.ident.as_ref().unwrap())
                         .collect::<Vec<_>>();
 
@@ -142,6 +145,7 @@ pub fn dir_helper_derive(input: TokenStream) -> TokenStream {
 /// Add `__str__` and `__repr__` methods to the struct in a `#[pymethods]` impl.
 ///
 /// You can skip printing of certain fields by adding the `#[skip]` attribute macro.
+/// For structs, this skips all fields which are not marked `pub`.
 ///
 /// ## Example
 /// ```
@@ -150,10 +154,10 @@ pub fn dir_helper_derive(input: TokenStream) -> TokenStream {
 /// #[pyclass]
 /// #[derive(StrReprHelper)]
 /// struct Person {
-///     name: String,
+///     pub name: String,
 ///     address: String,
 ///     #[skip]
-///     phone_number: String,
+///     pub phone_number: String,
 /// }
 /// ```
 #[proc_macro_derive(StrReprHelper, attributes(skip))]
