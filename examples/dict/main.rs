@@ -10,8 +10,7 @@ struct Person {
     location: String,
 }
 
-#[test]
-fn test_dict() {
+fn main() {
     pyo3::prepare_freethreaded_python();
 
     let res = Person {
