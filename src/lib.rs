@@ -4,6 +4,8 @@
 //! - `__str__`
 //! - `__repr__`
 //! - `__dir__`
+//! - `__getattr__`
+//! - `__dict__`
 //!
 //! Note: When using the `StrReprHelper` macro. if `T` did not use `StrReprHelper`, it requires `T: Debug` for each `T` inside the item. The `Debug` trait is used for the outputs.
 //!
