@@ -3,11 +3,11 @@
 This crate enables you to automatically derive Python dunder methods for your Rust crate using PyO3.
 
 ## Key features
-- The following methods may be automatically derived
+- The following methods may be automatically derived on structs and enums:
     - `__str__`
     - `__repr__`
     - `__dir__`
-    - `__getattr__` (structs only)
+    - `__getattr__`
     - `__dict__`
 - Support for structs and enums (only unit and complex enums due to a PyO3 limitation)
 - Support for skipping variants or fields with the `#[skip]` attribute

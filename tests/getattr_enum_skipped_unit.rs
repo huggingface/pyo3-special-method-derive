@@ -5,6 +5,7 @@ use pyo3_special_method_derive::GetattrHelper;
 #[derive(GetattrHelper)]
 enum Tester {
     Alpha,
+    #[skip]
     Beta,
 }
 

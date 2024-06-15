@@ -7,8 +7,8 @@
 //!
 //! Note: When using the `StrReprHelper` macro. if `T` did not use `StrReprHelper`, it requires `T: Debug` for each `T` inside the item. The `Debug` trait is used for the outputs.
 //!
-//! - You can skip exposure of variants or fields with the `#[attr]` attribute
-//! - You can skip variants or fields for `__str__` or `__repr__` differently with the `#[skip_str]` and `#[skip_repr]` attributes
+//! - Skip exposure of variants or fields with the `#[attr]` attribute
+//! - Skip variants or fields for `__str__` or `__repr__` differently with the `#[skip_str]` and `#[skip_repr]` attributes
 //! - Struct fields which are not `pub` are skipped automatically
 //!
 
@@ -22,9 +22,9 @@ use syn::{parse_macro_input, Data, DeriveInput, Fields, Visibility};
 mod dir;
 mod str_repr;
 
-/// Add a `__dir__` method to the struct in a `#[pymethods]` impl.
+/// Add a `__dir__` method to a struct or enun.
 ///
-/// - You can skip exposure of certain fields by adding the `#[skip]` attribute macro
+/// - Skip exposure of certain fields by adding the `#[skip]` attribute macro
 /// - For structs, all fields are skipped which are not marked `pub`
 ///
 /// ## Example
@@ -136,10 +136,10 @@ pub fn dir_helper_derive(input: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
-/// Add `__str__` and `__repr__` methods to the struct in a `#[pymethods]` impl.
+/// Add `__str__` and `__repr__` methods to the struct or enum.
 ///
-/// - You can skip printing of certain fields by adding the `#[skip]` attribute macro
-/// - To specialze skipping depending on `__str__` and `__repr__`, you can use the `#[skip_str]`
+/// - Skip printing of certain fields by adding the `#[skip]` attribute macro
+/// - To specialze skipping depending on `__str__` and `__repr__`, use the `#[skip_str]`
 /// and `#[skip_repr]` attributes which skip for `__str__` and `__repr__` respectively
 /// - For structs, all fields are skipped which are not marked `pub`
 ///
@@ -183,9 +183,10 @@ pub fn str_repr_helper_derive(input_stream: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
-/// Add `__getattr__` to a struct in a `#[pymethods]` impl.
+/// Add a `__getattr__` method to a struct or enum.
 ///
 /// - For structs, all fields are skipped which are not marked `pub`
+/// - Skip printing of certain fields or variants by adding the `#[skip]` attribute macro
 ///
 /// ## Example
 /// ```
@@ -199,7 +200,7 @@ pub fn str_repr_helper_derive(input_stream: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(GetattrHelper)]
+#[proc_macro_derive(GetattrHelper, attributes(skip))]
 pub fn getattr_helper_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
@@ -213,7 +214,8 @@ pub fn getattr_helper_derive(input: TokenStream) -> TokenStream {
                     let field_names = fields
                         .named
                         .iter()
-                        //.filter(|f| matches!(f.vis, Visibility::Public(_)))
+                        .filter(|f| matches!(f.vis, Visibility::Public(_)))
+                        .filter(|f| !f.attrs.iter().any(|attr| attr.path().is_ident("skip")))
                         .map(|f| f.ident.as_ref().unwrap())
                         .collect::<Vec<_>>();
                     let field_names_str = field_names
@@ -281,7 +283,7 @@ pub fn getattr_helper_derive(input: TokenStream) -> TokenStream {
         Data::Enum(data_enum) => {
             let variants = data_enum.variants.iter().collect::<Vec<_>>();
             let match_arms = variants.iter()
-                //.filter(|variant| !variant.attrs.iter().any(|attr| attr.path().is_ident("skip")))
+                .filter(|variant| !variant.attrs.iter().any(|attr| attr.path().is_ident("skip")))
                 .map(|variant| {
                 let ident = &variant.ident;
                 match &variant.fields {
@@ -320,6 +322,30 @@ pub fn getattr_helper_derive(input: TokenStream) -> TokenStream {
                     }
                 }
             }).collect::<Vec<_>>();
+            let ignored_match_arms = variants.iter()
+                .filter(|variant| variant.attrs.iter().any(|attr| attr.path().is_ident("skip")))
+                .map(|variant| {
+                let ident = &variant.ident;
+                match &variant.fields {
+                    Fields::Unit => {
+                        quote! {
+                            Self::#ident => Err(pyo3::exceptions::PyAttributeError::new_err(format!("'{}.{}' has no attribute '{attr}'", stringify!(#name), stringify!(#ident)))),
+                        }
+                    }
+                    Fields::Unnamed(_) => {
+                        unreachable!("Unnamed fields are not supported for enums with PyO3.")
+                    }
+                    Fields::Named(fields) => {
+                        let field_names = fields.named.iter().map(|f| f.ident.as_ref().unwrap().clone()).collect::<Vec<_>>();
+                        quote! {
+                            Self::#ident { #(#field_names),* } => {
+                                let _ = (#(#field_names),*);
+                                Err(pyo3::exceptions::PyAttributeError::new_err(format!("'{}.{}' has no attribute '{attr}'", stringify!(#name), stringify!(#ident))))
+                            }
+                        }
+                    }
+                }
+            }).collect::<Vec<_>>();
             quote! {
                 #[pyo3::pymethods]
                 impl #name {
@@ -329,6 +355,7 @@ pub fn getattr_helper_derive(input: TokenStream) -> TokenStream {
 
                         match self {
                             #(#match_arms)*
+                            #(#ignored_match_arms)*
                         }
                     }
                 }
@@ -343,10 +370,10 @@ pub fn getattr_helper_derive(input: TokenStream) -> TokenStream {
     expanded.into()
 }
 
-/// Add `__getattr__` to a struct in a `#[pymethods]` impl.
+/// Add a `__dict__` attribute to a struct or enum.
 ///
 /// - For structs, all fields are skipped which are not marked `pub`
-/// - You can skip printing of certain fields or variants by adding the `#[skip]` attribute macro
+/// - Skip printing of certain fields or variants by adding the `#[skip]` attribute macro
 ///
 /// ## Example
 /// ```
@@ -360,7 +387,7 @@ pub fn getattr_helper_derive(input: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(DictHelper)]
+#[proc_macro_derive(DictHelper, attributes(skip))]
 pub fn dict_helper_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
@@ -374,6 +401,7 @@ pub fn dict_helper_derive(input: TokenStream) -> TokenStream {
                     let field_names = fields
                         .named
                         .iter()
+                        .filter(|f| !f.attrs.iter().any(|attr| attr.path().is_ident("skip")))
                         .filter(|f| matches!(f.vis, Visibility::Public(_)))
                         .map(|f| f.ident.as_ref().unwrap())
                         .collect::<Vec<_>>();
@@ -473,6 +501,42 @@ pub fn dict_helper_derive(input: TokenStream) -> TokenStream {
                     }
                 }
             }).collect::<Vec<_>>();
+            let ignored_match_arms = variants
+                .iter()
+                .filter(|variant| {
+                    variant
+                        .attrs
+                        .iter()
+                        .any(|attr| attr.path().is_ident("skip"))
+                })
+                .map(|variant| {
+                    let ident = &variant.ident;
+                    match &variant.fields {
+                        Fields::Unit => {
+                            quote! {
+                                Self::#ident => { }
+                            }
+                        }
+                        Fields::Unnamed(_) => {
+                            unreachable!("Unnamed fields are not supported for enums with PyO3.")
+                        }
+                        Fields::Named(fields) => {
+                            let field_names = fields
+                                .named
+                                .iter()
+                                .map(|f| f.ident.as_ref().unwrap().clone())
+                                .collect::<Vec<_>>();
+
+                            quote! {
+                                Self::#ident { #(#field_names),* } => {
+                                    let _ = (#(#field_names),*);
+                                    ()
+                                }
+                            }
+                        }
+                    }
+                })
+                .collect::<Vec<_>>();
             quote! {
                 #[pyo3::pymethods]
                 impl #name {
@@ -484,6 +548,7 @@ pub fn dict_helper_derive(input: TokenStream) -> TokenStream {
                         let mut values = std::collections::HashMap::new();
                         match self {
                             #(#match_arms)*
+                            #(#ignored_match_arms)*
                         }
                         values
                     }
