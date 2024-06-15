@@ -328,6 +328,7 @@ pub fn getattr_helper_derive(input: TokenStream) -> TokenStream {
                 .filter(|variant| variant.attrs.iter().any(|attr| attr.path().is_ident("skip")))
                 .map(|variant| {
                 let ident = &variant.ident;
+                // If a variant was ignored always raise an exception
                 match &variant.fields {
                     Fields::Unit => {
                         quote! {
@@ -513,6 +514,7 @@ pub fn dict_helper_derive(input: TokenStream) -> TokenStream {
                 })
                 .map(|variant| {
                     let ident = &variant.ident;
+                    // If a variant was ignored just output no __dict__ data.
                     match &variant.fields {
                         Fields::Unit => {
                             quote! {
@@ -532,7 +534,6 @@ pub fn dict_helper_derive(input: TokenStream) -> TokenStream {
                             quote! {
                                 Self::#ident { #(#field_names),* } => {
                                     let _ = (#(#field_names),*);
-                                    ()
                                 }
                             }
                         }
