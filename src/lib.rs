@@ -273,7 +273,7 @@ pub fn getattr_helper_derive(input: TokenStream) -> TokenStream {
                 }
                 Fields::Unnamed(_) => {
                     quote! {
-                        compile_error!("Unnamed fields for struct are not supported for DirHelper derive.");
+                        compile_error!("Unnamed fields for struct are not supported for GetattrHelper derive.");
                     }
                 }
             }
@@ -299,9 +299,9 @@ pub fn getattr_helper_derive(input: TokenStream) -> TokenStream {
 /// ## Example
 /// ```
 /// use pyo3::pyclass;
-/// use pyo3_special_method_derive::GetattrHelper;
+/// use pyo3_special_method_derive::DictHelper;
 /// #[pyclass]
-/// #[derive(GetattrHelper)]
+/// #[derive(DictHelper)]
 /// struct Person {
 ///     pub name: String,
 ///     address: String,
@@ -381,19 +381,66 @@ pub fn dict_helper_derive(input: TokenStream) -> TokenStream {
                 }
                 Fields::Unnamed(_) => {
                     quote! {
-                        compile_error!("Unnamed fields for struct are not supported for DirHelper derive.");
+                        compile_error!("Unnamed fields for struct are not supported for DictHelper derive.");
                     }
                 }
             }
         }
-        Data::Enum(_) => {
+        Data::Enum(data_enum) => {
+            let variants = data_enum.variants.iter().collect::<Vec<_>>();
+            let match_arms = variants.iter()
+                .filter(|variant| !variant.attrs.iter().any(|attr| attr.path().is_ident("skip")))
+                .map(|variant| {
+                let ident = &variant.ident;
+                match &variant.fields {
+                    Fields::Unit => {
+                        quote! {
+                            Self::#ident => { }
+                        }
+                    }
+                    Fields::Unnamed(_) => {
+                        unreachable!("Unnamed fields are not supported for enums with PyO3.")
+                    }
+                    Fields::Named(fields) => {
+                        let field_names = fields.named.iter().map(|f| f.ident.as_ref().unwrap().clone()).collect::<Vec<_>>();
+                        let mut inserter = Vec::new();
+                        for name in &field_names {
+                            inserter.push(
+                                quote! {
+                                    values.insert(
+                                            stringify!(#name).to_string(), pyo3::Python::with_gil(|py| #name.clone().into_py(py))
+                                    );
+                                }
+                            );
+                        }
+                        quote! {
+                            Self::#ident { #(#field_names),* } => {
+                                #(#inserter)*
+                            }
+                        }
+                    }
+                }
+            }).collect::<Vec<_>>();
             quote! {
-                compile_error!("Enums are not supported for GetattrHelper derive");
+                #[pyo3::pymethods]
+                impl #name {
+                    #[allow(non_snake_case)]
+                    #[getter]
+                    pub fn __dict__(&self) -> std::collections::HashMap<String, pyo3::Py<pyo3::PyAny>> {
+                        use pyo3::IntoPy;
+
+                        let mut values = std::collections::HashMap::new();
+                        match self {
+                            #(#match_arms)*
+                        }
+                        values
+                    }
+                }
             }
         }
         Data::Union(_) => {
             quote! {
-                compile_error!("Unions are not supported for GetattrHelper derive");
+                compile_error!("Unions are not supported for DictHelper derive");
             }
         }
     };
