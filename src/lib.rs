@@ -213,7 +213,7 @@ pub fn getattr_helper_derive(input: TokenStream) -> TokenStream {
                     let field_names = fields
                         .named
                         .iter()
-                        .filter(|f| matches!(f.vis, Visibility::Public(_)))
+                        //.filter(|f| matches!(f.vis, Visibility::Public(_)))
                         .map(|f| f.ident.as_ref().unwrap())
                         .collect::<Vec<_>>();
                     let field_names_str = field_names
@@ -278,9 +278,60 @@ pub fn getattr_helper_derive(input: TokenStream) -> TokenStream {
                 }
             }
         }
-        Data::Enum(_) => {
+        Data::Enum(data_enum) => {
+            let variants = data_enum.variants.iter().collect::<Vec<_>>();
+            let match_arms = variants.iter()
+                //.filter(|variant| !variant.attrs.iter().any(|attr| attr.path().is_ident("skip")))
+                .map(|variant| {
+                let ident = &variant.ident;
+                match &variant.fields {
+                    Fields::Unit => {
+                        quote! {
+                            Self::#ident => Err(pyo3::exceptions::PyAttributeError::new_err(format!("'{}.{}' has no attribute '{attr}'", stringify!(#name), stringify!(#ident)))),
+                        }
+                    }
+                    Fields::Unnamed(_) => {
+                        unreachable!("Unnamed fields are not supported for enums with PyO3.")
+                    }
+                    Fields::Named(fields) => {
+                        let field_names = fields.named.iter().map(|f| f.ident.as_ref().unwrap().clone()).collect::<Vec<_>>();
+                        let mut inserter = Vec::new();
+                        for ident_name in &field_names {
+                            inserter.push(
+                                quote! {
+                                    stringify!(#ident_name) => {
+                                        Ok(pyo3::Python::with_gil(|py| #ident_name.clone().into_py(py)))
+                                    }
+                                }
+                            );
+                        }
+                        inserter.push(
+                            quote! {
+                                _ => Err(pyo3::exceptions::PyAttributeError::new_err(format!("'{}.{}' has no attribute '{attr}'", stringify!(#name), stringify!(#ident))))
+                            }
+                        );
+                        quote! {
+                            Self::#ident { #(#field_names),* } => {
+                                match attr.as_str() {
+                                    #(#inserter)*
+                                }
+                            }
+                        }
+                    }
+                }
+            }).collect::<Vec<_>>();
             quote! {
-                compile_error!("Enums are not supported for GetattrHelper derive");
+                #[pyo3::pymethods]
+                impl #name {
+                    #[allow(non_snake_case)]
+                    pub fn __getattr__(&self, attr: String) -> pyo3::PyResult<pyo3::Py<pyo3::PyAny>> {
+                        use pyo3::IntoPy;
+
+                        match self {
+                            #(#match_arms)*
+                        }
+                    }
+                }
             }
         }
         Data::Union(_) => {
@@ -295,6 +346,7 @@ pub fn getattr_helper_derive(input: TokenStream) -> TokenStream {
 /// Add `__getattr__` to a struct in a `#[pymethods]` impl.
 ///
 /// - For structs, all fields are skipped which are not marked `pub`
+/// - You can skip printing of certain fields or variants by adding the `#[skip]` attribute macro
 ///
 /// ## Example
 /// ```
