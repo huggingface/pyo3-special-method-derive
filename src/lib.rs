@@ -220,7 +220,7 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
 /// Add a `__str__` method to the struct or enum.
 ///
 /// Important note: This implements the [`Display`] trait so any conflicting implementations
-/// should be removed to use this.
+/// should be removed to use this. Additionally, all internal types should implement [`Debug`].
 ///
 /// - Skip printing of certain fields by adding the `#[pyo3_smd(skip)]` attribute macro
 /// - To specialze skipping for `__str__`, use the `#[pyo3_smd_str(skip)]` attributes
