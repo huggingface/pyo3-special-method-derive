@@ -15,8 +15,7 @@ macro_rules! create_body {
     };
 }
 
-// Internal function to generate Display and Debug impls.
-// `Display` is used for `__str__`. `Debug` is used for `__repr__`.
+// Internal function to generate impls of the custom trait: `ExtensionStrRepr{ident}`
 pub(crate) fn display_debug_derive(input: &DeriveInput) -> proc_macro2::TokenStream {
     // Get the name of the struct
     let ident = &input.ident;
