@@ -173,7 +173,7 @@ dependencies = [
 
 [[package]]
 name = "pyo3_special_method_derive"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "proc-macro2",
  "pyo3",
