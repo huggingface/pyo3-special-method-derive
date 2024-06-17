@@ -22,7 +22,7 @@ use syn::{parse_macro_input, Data, DeriveInput, Fields, Visibility};
 
 mod str_repr;
 
-/// Add a `__dir__` method to a struct or enun.
+/// Add a `__dir__` method to a struct or enum.
 ///
 /// - Skip exposure of certain fields by adding the `#[skip]` attribute macro
 /// - For structs, all fields are skipped which are not marked `pub`
@@ -283,7 +283,7 @@ pub fn getattr_helper_derive(input: TokenStream) -> TokenStream {
                             impl #name {
                                 #[allow(non_snake_case)]
                                 pub fn __getattr__(&self, attr: String) -> pyo3::PyResult<pyo3::Py<pyo3::PyAny>> {
-                                    Err(pyo3::exceptions::PyAttributeError::new_err(format!("'{}' has no attribute '{attr}'", #name)))
+                                    Err(pyo3::exceptions::PyAttributeError::new_err(format!("'{}' has no attribute '{attr}'", stringify!(#name))))
                                 }
                             }
                         }

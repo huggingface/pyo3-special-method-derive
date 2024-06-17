@@ -1,5 +1,5 @@
 use pyo3::pyclass;
-use pyo3_special_method_derive::{DirHelper, StrReprHelper};
+use pyo3_special_method_derive::{DirHelper, GetattrHelper, StrReprHelper};
 
 #[pyclass]
 #[derive(DirHelper, StrReprHelper)]
@@ -63,4 +63,11 @@ struct UnitNoFields;
 fn test_no_fields() {
     let fields: Vec<String> = UnitNoFields.__dir__();
     assert_eq!(Vec::<String>::new(), fields);
+}
+
+#[pyclass]
+#[derive(GetattrHelper)]
+#[allow(dead_code)]
+struct PrivateFields {
+    x: u32,
 }
