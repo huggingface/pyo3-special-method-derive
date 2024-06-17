@@ -1,3 +1,4 @@
+use proc_macro2::Span;
 use quote::quote;
 use syn::{DeriveInput, Fields, Ident, Visibility};
 
@@ -14,8 +15,7 @@ macro_rules! create_body {
     };
 }
 
-// Internal function to generate Display and Debug impls.
-// `Display` is used for `__str__`. `Debug` is used for `__repr__`.
+// Internal function to generate impls of the custom trait: `ExtensionStrRepr{ident}`
 pub(crate) fn display_debug_derive(input: &DeriveInput) -> proc_macro2::TokenStream {
     // Get the name of the struct
     let ident = &input.ident;
@@ -25,40 +25,42 @@ pub(crate) fn display_debug_derive(input: &DeriveInput) -> proc_macro2::TokenStr
     let body_debug = create_body!(input, ident, true);
 
     if matches!(input.data, syn::Data::Struct(_)) {
+        let trait_name = Ident::new(&format!("ExtensionStrRepr{ident}"), Span::call_site());
         quote! {
-            impl std::fmt::Debug for #ident {
-                fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                    write!(f, "{}(", stringify!(#ident))?;
-                    #(#body_debug)*
-                    write!(f, ")")
-                }
+            trait #trait_name {
+                fn repr_fmt(&self, f: &mut String);
+                fn str_fmt(&self, f: &mut String);
             }
-
-            impl std::fmt::Display for #ident {
-                fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                    write!(f, "{}(", stringify!(#ident))?;
+            impl #trait_name for #ident {
+                fn repr_fmt(&self, f: &mut String) {
+                    *f += &format!("{}(", stringify!(#ident));
+                    #(#body_debug)*
+                    *f += ")";
+                }
+                fn str_fmt(&self, f: &mut String) {
+                    *f += &format!("{}(", stringify!(#ident));
                     #(#body_display)*
-                    write!(f, ")")
+                    *f += ")";
                 }
             }
         }
     } else {
+        let trait_name = Ident::new(&format!("ExtensionStrRepr{ident}"), Span::call_site());
         quote! {
-            impl std::fmt::Debug for #ident {
-                fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+            trait #trait_name {
+                fn repr_fmt(&self, f: &mut String);
+                fn str_fmt(&self, f: &mut String);
+            }
+            impl #trait_name for #ident {
+                fn repr_fmt(&self, f: &mut String) {
                     match self {
                         #(#body_debug)*
                     }
-                    write!(f, "")
                 }
-            }
-
-            impl std::fmt::Display for #ident {
-                fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+                fn str_fmt(&self, f: &mut String) {
                     match self {
                         #(#body_display)*
                     }
-                    write!(f, "")
                 }
             }
         }
@@ -90,13 +92,13 @@ fn generate_fmt_impl_for_struct(
             match &field.ident {
                 Some(ident) => {
                     quote! {
-                        write!(f, "{}={:?}{}", stringify!(#ident), self.#ident, #postfix)?;
+                        *f += &format!("{}={:?}{}", stringify!(#ident), self.#ident, #postfix);
                     }
                 }
                 None => {
                     // If the field doesn't have a name, we generate a name based on its index
                     let index = syn::Index::from(i);
-                    quote! { write!(f, "{}={:?}{}", stringify!(#index), self.#index, #postfix)?; }
+                    quote! { *f += &format!("{}={:?}{}", stringify!(#index), self.#index, #postfix); }
                 }
             }
         })
@@ -123,11 +125,11 @@ fn generate_fmt_impl_for_enum(
             Fields::Unit => {
                 if !to_skip {
                     quote! {
-                        Self::#ident => write!(f, "{}.{}", stringify!(#name), stringify!(#ident))?,
+                        Self::#ident => *f += &format!("{}.{}", stringify!(#name), stringify!(#ident)),
                     }
                 } else {
                     quote! {
-                        Self::#ident => write!(f, "<variant skipped>")?,
+                        Self::#ident => *f += "<variant skipped>",
                     }
                 }
             }
@@ -147,13 +149,13 @@ fn generate_fmt_impl_for_enum(
                 format_string = format!("{format_string})");
                 if !to_skip {
                     quote! {
-                        Self::#ident { #(#field_names),* } => write!(f, #format_string, stringify!(#name), stringify!(#ident), #(#field_names),*)?,
+                        Self::#ident { #(#field_names),* } => *f += &format!(#format_string, stringify!(#name), stringify!(#ident), #(#field_names),*),
                     }
                 } else {
                     quote! {
                         Self::#ident { #(#field_names),* } => {
                             let _ = (#(#field_names),*);
-                            write!(f, "<variant skipped>")?
+                            *f += "<variant skipped>";
                         }
                     }
                 }

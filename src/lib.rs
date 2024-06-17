@@ -225,11 +225,15 @@ pub fn str_repr_helper_derive(input_stream: TokenStream) -> TokenStream {
         #[pyo3::pymethods]
         impl #name {
             pub fn __str__(&self) -> String {
-                format!("{self}")
+                let mut output = String::new();
+                self.str_fmt(&mut output);
+                output
             }
 
             pub fn __repr__(&self) -> String {
-                format!("{self:?}")
+                let mut output = String::new();
+                self.repr_fmt(&mut output);
+                output
             }
         }
     };
