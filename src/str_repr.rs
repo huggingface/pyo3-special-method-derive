@@ -1,4 +1,3 @@
-use proc_macro2::Span;
 use quote::quote;
 use syn::{DeriveInput, Fields, Ident, Visibility};
 
@@ -34,33 +33,23 @@ pub(crate) fn impl_formatter(input: &DeriveInput, ty: StrOrRepr) -> proc_macro2:
     if matches!(input.data, syn::Data::Struct(_)) {
         match ty {
             StrOrRepr::ForStr => {
-                let trait_name =
-                    Ident::new(&format!("InternalStrFormatter{ident}"), Span::call_site());
                 quote! {
-                    trait #trait_name {
-                        fn str_fmt(&self, f: &mut String);
-                    }
-                    impl #trait_name for #ident {
-                        fn str_fmt(&self, f: &mut String) {
-                            *f += &format!("{}(", stringify!(#ident));
-                            #(#body_debug)*
-                            *f += ")";
+                    impl std::fmt::Display for #ident {
+                        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                            write!(f, "{}(", stringify!(#ident))?;
+                            #(#body_display)*
+                            write!(f, ")")
                         }
                     }
                 }
             }
             StrOrRepr::ForRepr => {
-                let trait_name =
-                    Ident::new(&format!("InternalReprFormatter{ident}"), Span::call_site());
                 quote! {
-                    trait #trait_name {
-                        fn repr_fmt(&self, f: &mut String);
-                    }
-                    impl #trait_name for #ident {
-                        fn repr_fmt(&self, f: &mut String) {
-                            *f += &format!("{}(", stringify!(#ident));
+                    impl std::fmt::Debug for #ident {
+                        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                            write!(f, "{}(", stringify!(#ident))?;
                             #(#body_debug)*
-                            *f += ")";
+                            write!(f, ")")
                         }
                     }
                 }
@@ -69,33 +58,25 @@ pub(crate) fn impl_formatter(input: &DeriveInput, ty: StrOrRepr) -> proc_macro2:
     } else {
         match ty {
             StrOrRepr::ForStr => {
-                let trait_name =
-                    Ident::new(&format!("InternalStrFormatter{ident}"), Span::call_site());
                 quote! {
-                    trait #trait_name {
-                        fn str_fmt(&self, f: &mut String);
-                    }
-                    impl #trait_name for #ident {
-                        fn str_fmt(&self, f: &mut String) {
+                    impl std::fmt::Display for #ident {
+                        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                             match self {
                                 #(#body_display)*
                             }
+                            write!(f, "")
                         }
                     }
                 }
             }
             StrOrRepr::ForRepr => {
-                let trait_name =
-                    Ident::new(&format!("InternalReprFormatter{ident}"), Span::call_site());
                 quote! {
-                    trait #trait_name {
-                        fn repr_fmt(&self, f: &mut String);
-                    }
-                    impl #trait_name for #ident {
-                        fn repr_fmt(&self, f: &mut String) {
+                    impl std::fmt::Debug for #ident {
+                        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                             match self {
                                 #(#body_debug)*
                             }
+                            write!(f, "")
                         }
                     }
                 }
@@ -148,13 +129,13 @@ fn generate_fmt_impl_for_struct(
             match &field.ident {
                 Some(ident) => {
                     quote! {
-                        *f += &format!("{}={:?}{}", stringify!(#ident), self.#ident, #postfix);
+                        write!(f, "{}={:?}{}", stringify!(#ident), self.#ident, #postfix)?;
                     }
                 }
                 None => {
                     // If the field doesn't have a name, we generate a name based on its index
                     let index = syn::Index::from(i);
-                    quote! { *f += &format!("{}={:?}{}", stringify!(#index), self.#index, #postfix); }
+                    quote! { write!(f, "{}={:?}{}", stringify!(#index), self.#index, #postfix)?; }
                 }
             }
         })
@@ -201,11 +182,11 @@ fn generate_fmt_impl_for_enum(
                 Fields::Unit => {
                     if !to_skip {
                         quote! {
-                            Self::#ident => *f += &format!("{}.{}", stringify!(#name), stringify!(#ident)),
+                            Self::#ident => write!(f, "{}.{}", stringify!(#name), stringify!(#ident))?,
                         }
                     } else {
                         quote! {
-                            Self::#ident => *f += "<variant skipped>",
+                            Self::#ident => write!(f, "<variant skipped>")?,
                         }
                     }
                 }
@@ -225,13 +206,13 @@ fn generate_fmt_impl_for_enum(
                     format_string = format!("{format_string})");
                     if !to_skip {
                         quote! {
-                            Self::#ident { #(#field_names),* } => *f += &format!(#format_string, stringify!(#name), stringify!(#ident), #(#field_names),*),
+                            Self::#ident { #(#field_names),* } => write!(f, #format_string, stringify!(#name), stringify!(#ident), #(#field_names),*)?,
                         }
                     } else {
                         quote! {
                             Self::#ident { #(#field_names),* } => {
                                 let _ = (#(#field_names),*);
-                                *f += "<variant skipped>";
+                                write!(f, "<variant skipped>")?;
                             }
                         }
                     }

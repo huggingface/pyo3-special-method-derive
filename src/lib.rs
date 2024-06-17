@@ -219,6 +219,9 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
 
 /// Add a `__str__` method to the struct or enum.
 ///
+/// Important note: This implementes the [`Display`] trait so any conflicting implementations
+/// should be removed to use this.
+///
 /// - Skip printing of certain fields by adding the `#[pyo3_smd(skip)]` attribute macro
 /// - To specialze skipping for `__str__`, use the `#[pyo3_smd_str(skip)]` attributes
 /// - For structs, all fields are skipped which are not marked `pub`
@@ -251,9 +254,7 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
         #[pyo3::pymethods]
         impl #name {
             pub fn __str__(&self) -> String {
-                let mut output = String::new();
-                self.str_fmt(&mut output);
-                output
+                format!("{self}")
             }
         }
     };
@@ -262,6 +263,9 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 }
 
 /// Add a `__repr__` method to the struct or enum.
+///
+/// Important note: This implementes the [`Debug`] trait so any conflicting implementations
+/// should be removed to use this.
 ///
 /// - Skip printing of certain fields by adding the `#[pyo3_smd(skip)]` attribute macro
 /// - To specialze skipping for `__repr__`, use the `#[pyo3_smd_repr(skip)]` attributes
@@ -295,9 +299,7 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
         #[pyo3::pymethods]
         impl #name {
             pub fn __repr__(&self) -> String {
-                let mut output = String::new();
-                self.repr_fmt(&mut output);
-                output
+                format!("{self:?}")
             }
         }
     };
