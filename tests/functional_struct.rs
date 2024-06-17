@@ -1,8 +1,8 @@
 use pyo3::pyclass;
-use pyo3_special_method_derive::{DirHelper, GetattrHelper, StrReprHelper};
+use pyo3_special_method_derive::{Dir, Getattr, StrRepr};
 
 #[pyclass]
-#[derive(DirHelper, StrReprHelper)]
+#[derive(Dir, StrRepr)]
 #[allow(dead_code)]
 struct WithFields {
     pub dora: u32,
@@ -55,7 +55,7 @@ fn test_with_repr() {
 }
 
 #[pyclass]
-#[derive(DirHelper)]
+#[derive(Dir)]
 #[allow(dead_code)]
 struct UnitNoFields;
 
@@ -66,7 +66,7 @@ fn test_no_fields() {
 }
 
 #[pyclass]
-#[derive(GetattrHelper)]
+#[derive(Getattr)]
 #[allow(dead_code)]
 struct PrivateFields {
     x: u32,

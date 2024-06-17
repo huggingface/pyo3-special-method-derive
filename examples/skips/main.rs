@@ -1,8 +1,8 @@
 use pyo3::pyclass;
-use pyo3_special_method_derive::{DirHelper, StrReprHelper};
+use pyo3_special_method_derive::{Dir, StrRepr};
 
 #[pyclass]
-#[derive(StrReprHelper, DirHelper)]
+#[derive(StrRepr, Dir)]
 enum Tester {
     #[skip_repr]
     Alpha {
@@ -21,7 +21,7 @@ enum Tester {
 }
 
 #[pyclass]
-#[derive(DirHelper, StrReprHelper)]
+#[derive(Dir, StrRepr)]
 #[allow(dead_code)]
 struct Person {
     pub name: String,

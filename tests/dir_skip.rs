@@ -1,8 +1,8 @@
 use pyo3::pyclass;
-use pyo3_special_method_derive::DirHelper;
+use pyo3_special_method_derive::Dir;
 
 #[pyclass]
-#[derive(DirHelper)]
+#[derive(Dir)]
 #[allow(dead_code)]
 struct WithFieldSkip {
     pub dora: u32,
@@ -23,7 +23,7 @@ fn test_with_dir_skip() {
 }
 
 #[pyclass]
-#[derive(DirHelper)]
+#[derive(Dir)]
 #[allow(dead_code)]
 struct WithAllFieldsSkipped {
     #[skip]

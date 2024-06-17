@@ -14,12 +14,12 @@ This crate enables you to automatically derive Python dunder methods for your Ru
 - Automatically skip struct fields which are not `pub`
 - Support for skipping variants or fields for `__str__` or `__repr__` differently with the `#[skip_str]` and `#[skip_repr]` attributes
 
-> Note: When using the `StrReprHelper` macro. if `T` did not use `StrReprHelper`, it requires `T: Debug` for each `T` inside the item. The `Debug` trait is used for the outputs.
+> Note: When using the `StrRepr` macro. if `T` did not use `StrRepr`, it requires `T: Debug` for each `T` inside the item. The `Debug` trait is used for the outputs.
 
 ## Example
 ```rust
 #[pyclass]
-#[derive(DirHelper, StrReprHelper)]
+#[derive(Dir, StrRepr)]
 struct Person {
     pub name: String,
     occupation: String,

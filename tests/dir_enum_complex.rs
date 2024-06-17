@@ -1,8 +1,8 @@
 use pyo3::pyclass;
-use pyo3_special_method_derive::DirHelper;
+use pyo3_special_method_derive::Dir;
 
 #[pyclass]
-#[derive(DirHelper)]
+#[derive(Dir)]
 #[allow(dead_code)]
 enum Tester {
     Alpha { x: String },

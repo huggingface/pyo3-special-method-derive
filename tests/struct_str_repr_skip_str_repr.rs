@@ -1,8 +1,8 @@
 use pyo3::pyclass;
-use pyo3_special_method_derive::{DirHelper, StrReprHelper};
+use pyo3_special_method_derive::{Dir, StrRepr};
 
 #[pyclass]
-#[derive(DirHelper, StrReprHelper)]
+#[derive(Dir, StrRepr)]
 #[allow(dead_code)]
 struct WithFields {
     pub dora: u32,
