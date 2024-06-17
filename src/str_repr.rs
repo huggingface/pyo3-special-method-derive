@@ -15,51 +15,86 @@ macro_rules! create_body {
     };
 }
 
-// Internal function to generate impls of the custom trait: `ExtensionStrRepr{ident}`
-pub(crate) fn display_debug_derive(input: &DeriveInput) -> proc_macro2::TokenStream {
+pub(crate) enum StrOrRepr {
+    ForStr,
+    ForRepr,
+}
+
+// Internal function to generate impls of the custom trait: `ExtensionRepr|ExtensionStr{ident}`
+pub(crate) fn impl_formatter(input: &DeriveInput, ty: StrOrRepr) -> proc_macro2::TokenStream {
     // Get the name of the struct
     let ident = &input.ident;
 
-    let body_display = create_body!(input, ident, false);
+    let body_display = create_body!(input, ident, matches!(ty, StrOrRepr::ForRepr));
 
-    let body_debug = create_body!(input, ident, true);
+    let body_debug = create_body!(input, ident, matches!(ty, StrOrRepr::ForRepr));
 
     if matches!(input.data, syn::Data::Struct(_)) {
-        let trait_name = Ident::new(&format!("ExtensionStrRepr{ident}"), Span::call_site());
-        quote! {
-            trait #trait_name {
-                fn repr_fmt(&self, f: &mut String);
-                fn str_fmt(&self, f: &mut String);
-            }
-            impl #trait_name for #ident {
-                fn repr_fmt(&self, f: &mut String) {
-                    *f += &format!("{}(", stringify!(#ident));
-                    #(#body_debug)*
-                    *f += ")";
+        match ty {
+            StrOrRepr::ForStr => {
+                let trait_name =
+                    Ident::new(&format!("InternalStrFormatter{ident}"), Span::call_site());
+                quote! {
+                    trait #trait_name {
+                        fn str_fmt(&self, f: &mut String);
+                    }
+                    impl #trait_name for #ident {
+                        fn str_fmt(&self, f: &mut String) {
+                            *f += &format!("{}(", stringify!(#ident));
+                            #(#body_debug)*
+                            *f += ")";
+                        }
+                    }
                 }
-                fn str_fmt(&self, f: &mut String) {
-                    *f += &format!("{}(", stringify!(#ident));
-                    #(#body_display)*
-                    *f += ")";
+            }
+            StrOrRepr::ForRepr => {
+                let trait_name =
+                    Ident::new(&format!("InternalReprFormatter{ident}"), Span::call_site());
+                quote! {
+                    trait #trait_name {
+                        fn repr_fmt(&self, f: &mut String);
+                    }
+                    impl #trait_name for #ident {
+                        fn repr_fmt(&self, f: &mut String) {
+                            *f += &format!("{}(", stringify!(#ident));
+                            #(#body_debug)*
+                            *f += ")";
+                        }
+                    }
                 }
             }
         }
     } else {
-        let trait_name = Ident::new(&format!("ExtensionStrRepr{ident}"), Span::call_site());
-        quote! {
-            trait #trait_name {
-                fn repr_fmt(&self, f: &mut String);
-                fn str_fmt(&self, f: &mut String);
-            }
-            impl #trait_name for #ident {
-                fn repr_fmt(&self, f: &mut String) {
-                    match self {
-                        #(#body_debug)*
+        match ty {
+            StrOrRepr::ForStr => {
+                let trait_name =
+                    Ident::new(&format!("InternalStrFormatter{ident}"), Span::call_site());
+                quote! {
+                    trait #trait_name {
+                        fn str_fmt(&self, f: &mut String);
+                    }
+                    impl #trait_name for #ident {
+                        fn str_fmt(&self, f: &mut String) {
+                            match self {
+                                #(#body_display)*
+                            }
+                        }
                     }
                 }
-                fn str_fmt(&self, f: &mut String) {
-                    match self {
-                        #(#body_display)*
+            }
+            StrOrRepr::ForRepr => {
+                let trait_name =
+                    Ident::new(&format!("InternalReprFormatter{ident}"), Span::call_site());
+                quote! {
+                    trait #trait_name {
+                        fn repr_fmt(&self, f: &mut String);
+                    }
+                    impl #trait_name for #ident {
+                        fn repr_fmt(&self, f: &mut String) {
+                            match self {
+                                #(#body_debug)*
+                            }
+                        }
                     }
                 }
             }

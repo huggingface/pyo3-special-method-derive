@@ -17,7 +17,7 @@
 extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::quote;
-use str_repr::display_debug_derive;
+use str_repr::{impl_formatter, StrOrRepr};
 use syn::{parse_macro_input, Data, DeriveInput, Fields, Visibility};
 
 mod str_repr;
@@ -190,19 +190,18 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
-/// Add `__str__` and `__repr__` methods to the struct or enum.
+/// Add a `__str__` method to the struct or enum.
 ///
 /// - Skip printing of certain fields by adding the `#[skip]` attribute macro
-/// - To specialze skipping depending on `__str__` and `__repr__`, use the `#[skip_str]`
-/// and `#[skip_repr]` attributes which skip for `__str__` and `__repr__` respectively
+/// - To specialze skipping for `__str__`, use the `#[skip_str]` attributes
 /// - For structs, all fields are skipped which are not marked `pub`
 ///
 /// ## Example
 /// ```
 /// use pyo3::pyclass;
-/// use pyo3_special_method_derive::StrRepr;
+/// use pyo3_special_method_derive::Str;
 /// #[pyclass]
-/// #[derive(StrRepr)]
+/// #[derive(Str)]
 /// struct Person {
 ///     pub name: String,
 ///     address: String,
@@ -210,14 +209,14 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(StrRepr, attributes(skip, skip_str, skip_repr))]
-pub fn str_repr_derive(input_stream: TokenStream) -> TokenStream {
+#[proc_macro_derive(Str, attributes(skip, skip_str))]
+pub fn str_derive(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
 
     // Get the name of the struct
     let name = &input.ident;
 
-    let display_debug_derive_body = display_debug_derive(&input);
+    let display_debug_derive_body = impl_formatter(&input, StrOrRepr::ForStr);
 
     let expanded = quote! {
         #display_debug_derive_body
@@ -229,7 +228,45 @@ pub fn str_repr_derive(input_stream: TokenStream) -> TokenStream {
                 self.str_fmt(&mut output);
                 output
             }
+        }
+    };
 
+    TokenStream::from(expanded)
+}
+
+/// Add a `__repr__` method to the struct or enum.
+///
+/// - Skip printing of certain fields by adding the `#[skip]` attribute macro
+/// - To specialze skipping for `__repr__`, use the `#[skip_repr]` attributes
+/// - For structs, all fields are skipped which are not marked `pub`
+///
+/// ## Example
+/// ```
+/// use pyo3::pyclass;
+/// use pyo3_special_method_derive::Repr;
+/// #[pyclass]
+/// #[derive(Repr)]
+/// struct Person {
+///     pub name: String,
+///     address: String,
+///     #[skip]
+///     pub phone_number: String,
+/// }
+/// ```
+#[proc_macro_derive(Repr, attributes(skip, skip_repr))]
+pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input_stream as DeriveInput);
+
+    // Get the name of the struct
+    let name = &input.ident;
+
+    let display_debug_derive_body = impl_formatter(&input, StrOrRepr::ForRepr);
+
+    let expanded = quote! {
+        #display_debug_derive_body
+
+        #[pyo3::pymethods]
+        impl #name {
             pub fn __repr__(&self) -> String {
                 let mut output = String::new();
                 self.repr_fmt(&mut output);

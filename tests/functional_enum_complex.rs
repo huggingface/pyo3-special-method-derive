@@ -1,8 +1,8 @@
 use pyo3::pyclass;
-use pyo3_special_method_derive::{Dir, StrRepr};
+use pyo3_special_method_derive::{Dir, Repr, Str};
 
 #[pyclass]
-#[derive(Dir, StrRepr)]
+#[derive(Dir, Str, Repr)]
 #[allow(dead_code)]
 enum Tester {
     Alpha { x: u32 },
