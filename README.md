@@ -10,9 +10,9 @@ This crate enables you to automatically derive Python dunder methods for your Ru
     - `__getattr__`
     - `__dict__`
 - Support for structs and enums (only unit and complex enums due to a PyO3 limitation)
-- Support for skipping variants or fields with the `#[skip]` attribute
+- Support for skipping variants or fields with the `#[pyo3_smd(skip)]` attribute
 - Automatically skip struct fields which are not `pub`
-- Support for skipping variants or fields for `__str__` or `__repr__` differently with the `#[skip_str]` and `#[skip_repr]` attributes
+- Support for skipping variants or fields for `__str__` or `__repr__` differently with the `#[pyo3_smd_str(skip)]` and `#[pyo3_smd_str(repr)]` attributes
 
 > Note: When using the `StrRepr` macro. if `T` did not use `StrRepr`, it requires `T: Debug` for each `T` inside the item. The `Debug` trait is used for the outputs.
 
@@ -23,7 +23,7 @@ This crate enables you to automatically derive Python dunder methods for your Ru
 struct Person {
     pub name: String,
     occupation: String,
-    #[skip]
+    #[pyo3_smd(skip)]
     pub phone_num: String,
 }
 ```

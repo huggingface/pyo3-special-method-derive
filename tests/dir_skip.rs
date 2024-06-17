@@ -7,7 +7,7 @@ use pyo3_special_method_derive::Dir;
 struct WithFieldSkip {
     pub dora: u32,
     pub my: String,
-    #[skip]
+    #[pyo3_smd(skip)]
     pub name: f32,
 }
 
@@ -26,11 +26,11 @@ fn test_with_dir_skip() {
 #[derive(Dir)]
 #[allow(dead_code)]
 struct WithAllFieldsSkipped {
-    #[skip]
+    #[pyo3_smd(skip)]
     pub dora: u32,
-    #[skip]
+    #[pyo3_smd(skip)]
     pub my: String,
-    #[skip]
+    #[pyo3_smd(skip)]
     pub name: f32,
 }
 

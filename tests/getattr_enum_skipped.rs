@@ -7,7 +7,7 @@ enum Tester {
     Alpha {
         x: String,
     },
-    #[skip]
+    #[pyo3_smd(skip)]
     Beta {
         x: String,
         y: String,
