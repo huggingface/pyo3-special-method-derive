@@ -6,7 +6,7 @@ use pyo3_special_method_derive::StrReprHelper;
 #[allow(dead_code)]
 enum Tester {
     Alpha {
-        x: u32,
+        x: String,
     },
     Beta {
         x: u32,
@@ -22,8 +22,11 @@ enum Tester {
 
 #[test]
 fn test_with_str() {
-    let res = Tester::Alpha { x: 12 }.__str__();
-    assert_eq!("Tester.Alpha(x=12)", &res);
+    let res = Tester::Alpha {
+        x: "Hello!".to_string(),
+    }
+    .__str__();
+    assert_eq!("Tester.Alpha(x=\"Hello!\")", &res);
 }
 
 #[test]
