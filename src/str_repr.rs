@@ -139,9 +139,9 @@ fn generate_fmt_impl_for_enum(
                 let mut format_string = "{}.{}(".to_string();
                 for (i, name) in field_names.iter().enumerate() {
                     if i == 0 {
-                        format_string = format!("{format_string}{}={{}}", name.as_ref().unwrap());
+                        format_string = format!("{format_string}{}={{:?}}", name.as_ref().unwrap());
                     } else {
-                        format_string = format!("{format_string}, {}={{}}", name.as_ref().unwrap());
+                        format_string = format!("{format_string}, {}={{:?}}", name.as_ref().unwrap());
                     }
                 }
                 format_string = format!("{format_string})");
