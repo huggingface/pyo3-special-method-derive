@@ -26,10 +26,7 @@ pub(crate) fn display_debug_derive(input: &DeriveInput) -> proc_macro2::TokenStr
     let body_debug = create_body!(input, ident, true);
 
     if matches!(input.data, syn::Data::Struct(_)) {
-        let trait_name = Ident::new(
-            &format!("ExtensionStrRepr{}", ident.to_string()),
-            Span::call_site(),
-        );
+        let trait_name = Ident::new(&format!("ExtensionStrRepr{ident}"), Span::call_site());
         quote! {
             trait #trait_name {
                 fn repr_fmt(&self, f: &mut String);
@@ -49,10 +46,7 @@ pub(crate) fn display_debug_derive(input: &DeriveInput) -> proc_macro2::TokenStr
             }
         }
     } else {
-        let trait_name = Ident::new(
-            &format!("ExtensionStrRepr{}", ident.to_string()),
-            Span::call_site(),
-        );
+        let trait_name = Ident::new(&format!("ExtensionStrRepr{ident}"), Span::call_site());
         quote! {
             trait #trait_name {
                 fn repr_fmt(&self, f: &mut String);
