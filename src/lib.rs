@@ -15,13 +15,11 @@
 //!
 
 extern crate proc_macro;
-use dir::get_dir_enum_variants;
 use proc_macro::TokenStream;
 use quote::quote;
 use str_repr::display_debug_derive;
 use syn::{parse_macro_input, Data, DeriveInput, Fields, Visibility};
 
-mod dir;
 mod str_repr;
 
 /// Add a `__dir__` method to a struct or enun.
@@ -111,20 +109,74 @@ pub fn dir_helper_derive(input: TokenStream) -> TokenStream {
             }
         }
         Data::Enum(e) => {
-            let variants = get_dir_enum_variants(&e);
-            let mut assigner = proc_macro2::TokenStream::new();
-            quote_into::quote_into!(assigner += [#{
-                for name in variants {
-                    quote_into::quote_into!(assigner += (names.push(stringify!(#name).to_string())),)
-                }
-            }];);
+            let matchers = e.variants.iter()
+                .filter(|variant| !variant.attrs.iter().any(|attr| attr.path().is_ident("skip")))
+                .map(|variant| {
+                    let ident = &variant.ident;
+                    match &variant.fields {
+                        Fields::Unit => {
+                            quote! {
+                                Self::#ident => { vec![] }
+                            }
+                        }
+                        Fields::Unnamed(_) => {
+                            unreachable!("Unnamed fields are not supported for enums with PyO3.")
+                        }
+                        Fields::Named(fields) => {
+                            let field_names = fields.named.iter().map(|f| f.ident.as_ref().unwrap().clone()).collect::<Vec<_>>();
+
+                            let mut assigner = proc_macro2::TokenStream::new();
+                            quote_into::quote_into!(assigner += [#{
+                                for name in &field_names {
+                                    quote_into::quote_into!(assigner += (names.push(stringify!(#name).to_string())),)
+                                }
+                            }];);
+
+                            quote! {
+                                Self::#ident { .. } => {
+                                    let mut names = Vec::new();
+                                    #assigner
+                                    names
+                                }
+                            }
+                        }
+                    }
+                });
+            let skipped_matchers = e
+                .variants
+                .iter()
+                .filter(|variant| {
+                    variant
+                        .attrs
+                        .iter()
+                        .any(|attr| attr.path().is_ident("skip"))
+                })
+                .map(|variant| {
+                    let ident = &variant.ident;
+                    match &variant.fields {
+                        Fields::Unit => {
+                            quote! {
+                                Self::#ident => { vec![] }
+                            }
+                        }
+                        Fields::Unnamed(_) => {
+                            unreachable!("Unnamed fields are not supported for enums with PyO3.")
+                        }
+                        Fields::Named(_) => {
+                            quote! {
+                                Self::#ident { .. } => { vec![] }
+                            }
+                        }
+                    }
+                });
             quote! {
                 #[pyo3::pymethods]
                 impl #name {
                     pub fn __dir__(&self) -> Vec<String> {
-                        let mut names = Vec::new();
-                        #assigner
-                        names
+                        match self {
+                            #(#matchers)*
+                            #(#skipped_matchers)*
+                        }
                     }
                 }
             }
