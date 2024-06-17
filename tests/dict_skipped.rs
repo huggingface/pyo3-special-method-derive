@@ -8,7 +8,7 @@ use pyo3_special_method_derive::Dict;
 #[allow(dead_code)]
 struct Person {
     pub name: String,
-    #[skip]
+    #[pyo3_smd(skip)]
     pub address: String,
     location: String,
 }

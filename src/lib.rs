@@ -7,10 +7,8 @@
 //! - `__getattr__`
 //! - `__dict__`
 //!
-//! Note: When using the `StrRepr` macro. if `T` did not use `StrRepr`, it requires `T: Debug` for each `T` inside the item. The `Debug` trait is used for the outputs.
-//!
-//! - Skip exposure of variants or fields with the `#[attr]` attribute
-//! - Skip variants or fields for `__str__` or `__repr__` differently with the `#[skip_str]` and `#[skip_repr]` attributes
+//! - Skip exposure of variants or fields with the `#[pyo3_smd(skip)]` attribute
+//! - Skip variants or fields for `__str__` or `__repr__` differently with the `#[pyo3_smd_str(skip)]` and `#[pyo3_smd_repr(skip)]` attributes
 //! - Struct fields which are not `pub` are skipped automatically
 //!
 
@@ -22,9 +20,13 @@ use syn::{parse_macro_input, Data, DeriveInput, Fields, Visibility};
 
 mod str_repr;
 
+const ATTR_NAMESPACE: &str = "pyo3_smd";
+const ATTR_NAMESPACE_STR: &str = "pyo3_smd_str";
+const ATTR_NAMESPACE_REPR: &str = "pyo3_smd_repr";
+
 /// Add a `__dir__` method to a struct or enum.
 ///
-/// - Skip exposure of certain fields by adding the `#[skip]` attribute macro
+/// - Skip exposure of certain fields by adding the `#[pyo3_smd(skip)]` attribute macro
 /// - For structs, all fields are skipped which are not marked `pub`
 ///
 /// ## Example
@@ -36,11 +38,11 @@ mod str_repr;
 /// struct Person {
 ///     pub name: String,
 ///     address: String,
-///     #[skip]
+///     #[pyo3_smd(skip)]
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(Dir, attributes(skip))]
+#[proc_macro_derive(Dir, attributes(pyo3_smd))]
 pub fn dir_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
@@ -56,7 +58,17 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
                     let field_names = fields
                         .named
                         .iter()
-                        .filter(|f| !f.attrs.iter().any(|attr| attr.path().is_ident("skip")))
+                        .filter(|f| {
+                            !f.attrs.iter().any(|attr| {
+                                let mut is_skip = false;
+                                attr.parse_nested_meta(|meta| {
+                                    is_skip = meta.path.is_ident("skip");
+                                    Ok(())
+                                })
+                                .unwrap();
+                                attr.path().is_ident(ATTR_NAMESPACE) && is_skip
+                            })
+                        })
                         .filter(|f| matches!(f.vis, Visibility::Public(_)))
                         .map(|f| f.ident.as_ref().unwrap())
                         .collect::<Vec<_>>();
@@ -110,7 +122,17 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
         }
         Data::Enum(e) => {
             let matchers = e.variants.iter()
-                .filter(|variant| !variant.attrs.iter().any(|attr| attr.path().is_ident("skip")))
+            .filter(|variant| {
+                !variant.attrs.iter().any(|attr| {
+                    let mut is_skip = false;
+                    attr.parse_nested_meta(|meta| {
+                        is_skip = meta.path.is_ident("skip");
+                        Ok(())
+                    })
+                    .unwrap();
+                    attr.path().is_ident(ATTR_NAMESPACE) && is_skip
+                })
+            })
                 .map(|variant| {
                     let ident = &variant.ident;
                     match &variant.fields {
@@ -146,10 +168,15 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
                 .variants
                 .iter()
                 .filter(|variant| {
-                    variant
-                        .attrs
-                        .iter()
-                        .any(|attr| attr.path().is_ident("skip"))
+                    variant.attrs.iter().any(|attr| {
+                        let mut is_skip = false;
+                        attr.parse_nested_meta(|meta| {
+                            is_skip = meta.path.is_ident("skip");
+                            Ok(())
+                        })
+                        .unwrap();
+                        attr.path().is_ident(ATTR_NAMESPACE) && is_skip
+                    })
                 })
                 .map(|variant| {
                     let ident = &variant.ident;
@@ -192,8 +219,8 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
 
 /// Add a `__str__` method to the struct or enum.
 ///
-/// - Skip printing of certain fields by adding the `#[skip]` attribute macro
-/// - To specialze skipping for `__str__`, use the `#[skip_str]` attributes
+/// - Skip printing of certain fields by adding the `#[pyo3_smd(skip)]` attribute macro
+/// - To specialze skipping for `__str__`, use the `#[pyo3_smd_str(skip)]` attributes
 /// - For structs, all fields are skipped which are not marked `pub`
 ///
 /// ## Example
@@ -205,11 +232,11 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
 /// struct Person {
 ///     pub name: String,
 ///     address: String,
-///     #[skip]
+///     #[pyo3_smd(skip)]
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(Str, attributes(skip, skip_str))]
+#[proc_macro_derive(Str, attributes(pyo3_smd, pyo3_smd_str))]
 pub fn str_derive(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
 
@@ -236,8 +263,8 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 
 /// Add a `__repr__` method to the struct or enum.
 ///
-/// - Skip printing of certain fields by adding the `#[skip]` attribute macro
-/// - To specialze skipping for `__repr__`, use the `#[skip_repr]` attributes
+/// - Skip printing of certain fields by adding the `#[pyo3_smd(skip)]` attribute macro
+/// - To specialze skipping for `__repr__`, use the `#[pyo3_smd_repr(skip)]` attributes
 /// - For structs, all fields are skipped which are not marked `pub`
 ///
 /// ## Example
@@ -249,11 +276,11 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 /// struct Person {
 ///     pub name: String,
 ///     address: String,
-///     #[skip]
+///     #[pyo3_smd(skip)]
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(Repr, attributes(skip, skip_repr))]
+#[proc_macro_derive(Repr, attributes(pyo3_smd, pyo3_smd_repr))]
 pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
 
@@ -281,7 +308,7 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
 /// Add a `__getattr__` method to a struct or enum.
 ///
 /// - For structs, all fields are skipped which are not marked `pub`
-/// - Skip printing of certain fields or variants by adding the `#[skip]` attribute macro
+/// - Skip printing of certain fields or variants by adding the `#[pyo3_smd(skip)]` attribute macro
 ///
 /// ## Example
 /// ```
@@ -295,7 +322,7 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(Getattr, attributes(skip))]
+#[proc_macro_derive(Getattr, attributes(pyo3_smd))]
 pub fn getattr_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
@@ -310,7 +337,17 @@ pub fn getattr_derive(input: TokenStream) -> TokenStream {
                         .named
                         .iter()
                         .filter(|f| matches!(f.vis, Visibility::Public(_)))
-                        .filter(|f| !f.attrs.iter().any(|attr| attr.path().is_ident("skip")))
+                        .filter(|f| {
+                            !f.attrs.iter().any(|attr| {
+                                let mut is_skip = false;
+                                attr.parse_nested_meta(|meta| {
+                                    is_skip = meta.path.is_ident("skip");
+                                    Ok(())
+                                })
+                                .unwrap();
+                                attr.path().is_ident(ATTR_NAMESPACE) && is_skip
+                            })
+                        })
                         .map(|f| f.ident.as_ref().unwrap())
                         .collect::<Vec<_>>();
                     let field_names_str = field_names
@@ -378,7 +415,17 @@ pub fn getattr_derive(input: TokenStream) -> TokenStream {
         Data::Enum(data_enum) => {
             let variants = data_enum.variants.iter().collect::<Vec<_>>();
             let match_arms = variants.iter()
-                .filter(|variant| !variant.attrs.iter().any(|attr| attr.path().is_ident("skip")))
+            .filter(|variant| {
+                !variant.attrs.iter().any(|attr| {
+                    let mut is_skip = false;
+                    attr.parse_nested_meta(|meta| {
+                        is_skip = meta.path.is_ident("skip");
+                        Ok(())
+                    })
+                    .unwrap();
+                    attr.path().is_ident(ATTR_NAMESPACE) && is_skip
+                })
+            })
                 .map(|variant| {
                 let ident = &variant.ident;
                 match &variant.fields {
@@ -418,7 +465,17 @@ pub fn getattr_derive(input: TokenStream) -> TokenStream {
                 }
             }).collect::<Vec<_>>();
             let ignored_match_arms = variants.iter()
-                .filter(|variant| variant.attrs.iter().any(|attr| attr.path().is_ident("skip")))
+            .filter(|variant| {
+                variant.attrs.iter().any(|attr| {
+                    let mut is_skip = false;
+                    attr.parse_nested_meta(|meta| {
+                        is_skip = meta.path.is_ident("skip");
+                        Ok(())
+                    })
+                    .unwrap();
+                    attr.path().is_ident(ATTR_NAMESPACE) && is_skip
+                })
+            })
                 .map(|variant| {
                 let ident = &variant.ident;
                 // If a variant was ignored always raise an exception
@@ -469,7 +526,7 @@ pub fn getattr_derive(input: TokenStream) -> TokenStream {
 /// Add a `__dict__` attribute to a struct or enum.
 ///
 /// - For structs, all fields are skipped which are not marked `pub`
-/// - Skip printing of certain fields or variants by adding the `#[skip]` attribute macro
+/// - Skip printing of certain fields or variants by adding the `#[pyo3_smd(skip)]` attribute macro
 ///
 /// ## Example
 /// ```
@@ -483,7 +540,7 @@ pub fn getattr_derive(input: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(Dict, attributes(skip))]
+#[proc_macro_derive(Dict, attributes(pyo3_smd))]
 pub fn dict_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
@@ -497,7 +554,17 @@ pub fn dict_derive(input: TokenStream) -> TokenStream {
                     let field_names = fields
                         .named
                         .iter()
-                        .filter(|f| !f.attrs.iter().any(|attr| attr.path().is_ident("skip")))
+                        .filter(|f| {
+                            !f.attrs.iter().any(|attr| {
+                                let mut is_skip = false;
+                                attr.parse_nested_meta(|meta| {
+                                    is_skip = meta.path.is_ident("skip");
+                                    Ok(())
+                                })
+                                .unwrap();
+                                attr.path().is_ident(ATTR_NAMESPACE) && is_skip
+                            })
+                        })
                         .filter(|f| matches!(f.vis, Visibility::Public(_)))
                         .map(|f| f.ident.as_ref().unwrap())
                         .collect::<Vec<_>>();
@@ -565,7 +632,17 @@ pub fn dict_derive(input: TokenStream) -> TokenStream {
         Data::Enum(data_enum) => {
             let variants = data_enum.variants.iter().collect::<Vec<_>>();
             let match_arms = variants.iter()
-                .filter(|variant| !variant.attrs.iter().any(|attr| attr.path().is_ident("skip")))
+            .filter(|variant| {
+                !variant.attrs.iter().any(|attr| {
+                    let mut is_skip = false;
+                    attr.parse_nested_meta(|meta| {
+                        is_skip = meta.path.is_ident("skip");
+                        Ok(())
+                    })
+                    .unwrap();
+                    attr.path().is_ident(ATTR_NAMESPACE) && is_skip
+                })
+            })
                 .map(|variant| {
                 let ident = &variant.ident;
                 match &variant.fields {
@@ -600,10 +677,15 @@ pub fn dict_derive(input: TokenStream) -> TokenStream {
             let ignored_match_arms = variants
                 .iter()
                 .filter(|variant| {
-                    variant
-                        .attrs
-                        .iter()
-                        .any(|attr| attr.path().is_ident("skip"))
+                    variant.attrs.iter().any(|attr| {
+                        let mut is_skip = false;
+                        attr.parse_nested_meta(|meta| {
+                            is_skip = meta.path.is_ident("skip");
+                            Ok(())
+                        })
+                        .unwrap();
+                        attr.path().is_ident(ATTR_NAMESPACE) && is_skip
+                    })
                 })
                 .map(|variant| {
                     let ident = &variant.ident;

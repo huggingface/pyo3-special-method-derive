@@ -6,7 +6,7 @@ use pyo3_special_method_derive::Dir;
 #[allow(dead_code)]
 enum Tester {
     Alpha,
-    #[skip]
+    #[pyo3_smd(skip)]
     Beta,
 }
 

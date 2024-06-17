@@ -12,7 +12,7 @@ enum Tester {
         x: u32,
         y: u32,
     },
-    #[skip]
+    #[pyo3_smd(skip)]
     Gamma {
         x: u32,
         y: u32,

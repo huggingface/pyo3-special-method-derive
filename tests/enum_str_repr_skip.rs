@@ -7,7 +7,7 @@ use pyo3_special_method_derive::{Repr, Str};
 enum Tester {
     Alpha,
     Beta,
-    #[skip]
+    #[pyo3_smd(skip)]
     Gamma,
 }
 

@@ -2,6 +2,8 @@ use proc_macro2::Span;
 use quote::quote;
 use syn::{DeriveInput, Fields, Ident, Visibility};
 
+use crate::{ATTR_NAMESPACE, ATTR_NAMESPACE_REPR, ATTR_NAMESPACE_STR};
+
 macro_rules! create_body {
     ($input:expr, $ident:expr, $is_repr:expr) => {
         match &$input.data {
@@ -109,13 +111,32 @@ fn generate_fmt_impl_for_struct(
     let fields = &data_struct.fields;
     let fields = fields
         .iter()
-        .filter(|f| !f.attrs.iter().any(|attr| attr.path().is_ident("skip")))
         .filter(|f| {
-            if is_repr {
-                !f.attrs.iter().any(|attr| attr.path().is_ident("skip_repr"))
+            !f.attrs.iter().any(|attr| {
+                let mut is_skip = false;
+                attr.parse_nested_meta(|meta| {
+                    is_skip = meta.path.is_ident("skip");
+                    Ok(())
+                })
+                .unwrap();
+                attr.path().is_ident(ATTR_NAMESPACE) && is_skip
+            })
+        })
+        .filter(|f| {
+            let namespace = if is_repr {
+                ATTR_NAMESPACE_REPR
             } else {
-                !f.attrs.iter().any(|attr| attr.path().is_ident("skip_str"))
-            }
+                ATTR_NAMESPACE_STR
+            };
+            !f.attrs.iter().any(|attr| {
+                let mut is_skip = false;
+                attr.parse_nested_meta(|meta| {
+                    is_skip = meta.path.is_ident("skip");
+                    Ok(())
+                })
+                .unwrap();
+                attr.path().is_ident(namespace) && is_skip
+            })
         })
         .filter(|f| matches!(f.vis, Visibility::Public(_)))
         .collect::<Vec<_>>();
@@ -150,51 +171,71 @@ fn generate_fmt_impl_for_enum(
     let variants = data_enum.variants.iter().collect::<Vec<_>>();
     variants.iter()
         .map(|variant| {
-        let ident = &variant.ident;
-        let to_skip = variant.attrs.iter().any(|attr| attr.path().is_ident("skip") || if is_repr {
-            attr.path().is_ident("skip_repr")
-        } else {
-            attr.path().is_ident("skip_str")
-        });
-        match &variant.fields {
-            Fields::Unit => {
-                if !to_skip {
-                    quote! {
-                        Self::#ident => *f += &format!("{}.{}", stringify!(#name), stringify!(#ident)),
-                    }
+            let ident = &variant.ident;
+            let to_skip = variant.attrs.iter().any(|attr| {
+                let mut is_skip = false;
+                attr.parse_nested_meta(|meta| {
+                    is_skip = meta.path.is_ident("skip");
+                    Ok(())
+                })
+                .unwrap();
+                let skip_direct = attr.path().is_ident(ATTR_NAMESPACE) && is_skip;
+
+                let namespace = if is_repr {
+                    ATTR_NAMESPACE_REPR
                 } else {
-                    quote! {
-                        Self::#ident => *f += "<variant skipped>",
-                    }
-                }
+                    ATTR_NAMESPACE_STR
+                };
+                let mut is_skip = false;
+                attr.parse_nested_meta(|meta| {
+                    is_skip = meta.path.is_ident("skip");
+                    Ok(())
+                })
+                .unwrap();
+                let is_specific_skip = attr.path().is_ident(namespace) && is_skip;
+
+                is_specific_skip || skip_direct
             }
-            Fields::Unnamed(_) => {
-                unreachable!("Unnamed fields are not supported for enums with PyO3.")
-            }
-            Fields::Named(fields) => {
-                let field_names: Vec<_> = fields.named.iter().map(|f| &f.ident).collect();
-                let mut format_string = "{}.{}(".to_string();
-                for (i, name) in field_names.iter().enumerate() {
-                    if i == 0 {
-                        format_string = format!("{format_string}{}={{:?}}", name.as_ref().unwrap());
+            );
+            match &variant.fields {
+                Fields::Unit => {
+                    if !to_skip {
+                        quote! {
+                            Self::#ident => *f += &format!("{}.{}", stringify!(#name), stringify!(#ident)),
+                        }
                     } else {
-                        format_string = format!("{format_string}, {}={{:?}}", name.as_ref().unwrap());
+                        quote! {
+                            Self::#ident => *f += "<variant skipped>",
+                        }
                     }
                 }
-                format_string = format!("{format_string})");
-                if !to_skip {
-                    quote! {
-                        Self::#ident { #(#field_names),* } => *f += &format!(#format_string, stringify!(#name), stringify!(#ident), #(#field_names),*),
+                Fields::Unnamed(_) => {
+                    unreachable!("Unnamed fields are not supported for enums with PyO3.")
+                }
+                Fields::Named(fields) => {
+                    let field_names: Vec<_> = fields.named.iter().map(|f| &f.ident).collect();
+                    let mut format_string = "{}.{}(".to_string();
+                    for (i, name) in field_names.iter().enumerate() {
+                        if i == 0 {
+                            format_string = format!("{format_string}{}={{:?}}", name.as_ref().unwrap());
+                        } else {
+                            format_string = format!("{format_string}, {}={{:?}}", name.as_ref().unwrap());
+                        }
                     }
-                } else {
-                    quote! {
-                        Self::#ident { #(#field_names),* } => {
-                            let _ = (#(#field_names),*);
-                            *f += "<variant skipped>";
+                    format_string = format!("{format_string})");
+                    if !to_skip {
+                        quote! {
+                            Self::#ident { #(#field_names),* } => *f += &format!(#format_string, stringify!(#name), stringify!(#ident), #(#field_names),*),
+                        }
+                    } else {
+                        quote! {
+                            Self::#ident { #(#field_names),* } => {
+                                let _ = (#(#field_names),*);
+                                *f += "<variant skipped>";
+                            }
                         }
                     }
                 }
             }
-        }
     }).collect::<Vec<_>>()
 }
