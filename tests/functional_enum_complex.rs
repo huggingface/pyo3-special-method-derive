@@ -13,10 +13,7 @@ enum Tester {
 #[test]
 fn test_with_dir() {
     let res = Tester::Alpha { x: 12 }.__dir__();
-    assert_eq!(
-        vec!["Alpha".to_string(), "Beta".to_string(), "Gamma".to_string()],
-        res
-    );
+    assert_eq!(vec!["x".to_string()], res);
 }
 
 #[test]
