@@ -7,8 +7,6 @@
 //! - `__getattr__`
 //! - `__dict__`
 //!
-//! Note: When using the `StrRepr` macro. if `T` did not use `StrRepr`, it requires `T: Debug` for each `T` inside the item. The `Debug` trait is used for the outputs.
-//!
 //! - Skip exposure of variants or fields with the `#[attr]` attribute
 //! - Skip variants or fields for `__str__` or `__repr__` differently with the `#[pyo3_smd_str(skip)]` and `#[pyo3_smd_repr(skip)]` attributes
 //! - Struct fields which are not `pub` are skipped automatically
