@@ -7,7 +7,7 @@
 //! - `__getattr__`
 //! - `__dict__`
 //!
-//! - Skip exposure of variants or fields with the `#[attr]` attribute
+//! - Skip exposure of variants or fields with the `#[pyo3_smd(skip)]` attribute
 //! - Skip variants or fields for `__str__` or `__repr__` differently with the `#[pyo3_smd_str(skip)]` and `#[pyo3_smd_repr(skip)]` attributes
 //! - Struct fields which are not `pub` are skipped automatically
 //!
