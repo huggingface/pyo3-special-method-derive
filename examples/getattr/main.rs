@@ -1,8 +1,8 @@
 use pyo3::pyclass;
-use pyo3_special_method_derive::GetattrHelper;
+use pyo3_special_method_derive::Getattr;
 
 #[pyclass]
-#[derive(GetattrHelper)]
+#[derive(Getattr)]
 #[allow(dead_code)]
 struct Person {
     pub name: String,

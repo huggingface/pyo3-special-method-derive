@@ -1,8 +1,8 @@
 use pyo3::{pyclass, Python};
-use pyo3_special_method_derive::GetattrHelper;
+use pyo3_special_method_derive::Getattr;
 
 #[pyclass]
-#[derive(GetattrHelper)]
+#[derive(Getattr)]
 enum Tester {
     Alpha {
         x: String,

@@ -7,7 +7,7 @@
 //! - `__getattr__`
 //! - `__dict__`
 //!
-//! Note: When using the `StrReprHelper` macro. if `T` did not use `StrReprHelper`, it requires `T: Debug` for each `T` inside the item. The `Debug` trait is used for the outputs.
+//! Note: When using the `StrRepr` macro. if `T` did not use `StrRepr`, it requires `T: Debug` for each `T` inside the item. The `Debug` trait is used for the outputs.
 //!
 //! - Skip exposure of variants or fields with the `#[attr]` attribute
 //! - Skip variants or fields for `__str__` or `__repr__` differently with the `#[skip_str]` and `#[skip_repr]` attributes
@@ -30,9 +30,9 @@ mod str_repr;
 /// ## Example
 /// ```
 /// use pyo3::pyclass;
-/// use pyo3_special_method_derive::DirHelper;
+/// use pyo3_special_method_derive::Dir;
 /// #[pyclass]
-/// #[derive(DirHelper)]
+/// #[derive(Dir)]
 /// struct Person {
 ///     pub name: String,
 ///     address: String,
@@ -40,8 +40,8 @@ mod str_repr;
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(DirHelper, attributes(skip))]
-pub fn dir_helper_derive(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(Dir, attributes(skip))]
+pub fn dir_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
     // Get the name of the struct
@@ -103,7 +103,7 @@ pub fn dir_helper_derive(input: TokenStream) -> TokenStream {
                 }
                 Fields::Unnamed(_) => {
                     quote! {
-                        compile_error!("Unnamed fields for struct are not supported for DirHelper derive.");
+                        compile_error!("Unnamed fields for struct are not supported for Dir derive.");
                     }
                 }
             }
@@ -183,7 +183,7 @@ pub fn dir_helper_derive(input: TokenStream) -> TokenStream {
         }
         Data::Union(_) => {
             quote! {
-                compile_error!("Unions are not supported for DirHelper derive");
+                compile_error!("Unions are not supported for Dir derive");
             }
         }
     };
@@ -200,9 +200,9 @@ pub fn dir_helper_derive(input: TokenStream) -> TokenStream {
 /// ## Example
 /// ```
 /// use pyo3::pyclass;
-/// use pyo3_special_method_derive::StrReprHelper;
+/// use pyo3_special_method_derive::StrRepr;
 /// #[pyclass]
-/// #[derive(StrReprHelper)]
+/// #[derive(StrRepr)]
 /// struct Person {
 ///     pub name: String,
 ///     address: String,
@@ -210,8 +210,8 @@ pub fn dir_helper_derive(input: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(StrReprHelper, attributes(skip, skip_str, skip_repr))]
-pub fn str_repr_helper_derive(input_stream: TokenStream) -> TokenStream {
+#[proc_macro_derive(StrRepr, attributes(skip, skip_str, skip_repr))]
+pub fn str_repr_derive(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
 
     // Get the name of the struct
@@ -249,17 +249,17 @@ pub fn str_repr_helper_derive(input_stream: TokenStream) -> TokenStream {
 /// ## Example
 /// ```
 /// use pyo3::pyclass;
-/// use pyo3_special_method_derive::GetattrHelper;
+/// use pyo3_special_method_derive::Getattr;
 /// #[pyclass]
-/// #[derive(GetattrHelper)]
+/// #[derive(Getattr)]
 /// struct Person {
 ///     pub name: String,
 ///     address: String,
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(GetattrHelper, attributes(skip))]
-pub fn getattr_helper_derive(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(Getattr, attributes(skip))]
+pub fn getattr_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
     let name = &input.ident;
@@ -333,7 +333,7 @@ pub fn getattr_helper_derive(input: TokenStream) -> TokenStream {
                 }
                 Fields::Unnamed(_) => {
                     quote! {
-                        compile_error!("Unnamed fields for struct are not supported for GetattrHelper derive.");
+                        compile_error!("Unnamed fields for struct are not supported for Getattr derive.");
                     }
                 }
             }
@@ -422,7 +422,7 @@ pub fn getattr_helper_derive(input: TokenStream) -> TokenStream {
         }
         Data::Union(_) => {
             quote! {
-                compile_error!("Unions are not supported for GetattrHelper derive");
+                compile_error!("Unions are not supported for Getattr derive");
             }
         }
     };
@@ -437,17 +437,17 @@ pub fn getattr_helper_derive(input: TokenStream) -> TokenStream {
 /// ## Example
 /// ```
 /// use pyo3::pyclass;
-/// use pyo3_special_method_derive::DictHelper;
+/// use pyo3_special_method_derive::Dict;
 /// #[pyclass]
-/// #[derive(DictHelper)]
+/// #[derive(Dict)]
 /// struct Person {
 ///     pub name: String,
 ///     address: String,
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(DictHelper, attributes(skip))]
-pub fn dict_helper_derive(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(Dict, attributes(skip))]
+pub fn dict_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
     let name = &input.ident;
@@ -520,7 +520,7 @@ pub fn dict_helper_derive(input: TokenStream) -> TokenStream {
                 }
                 Fields::Unnamed(_) => {
                     quote! {
-                        compile_error!("Unnamed fields for struct are not supported for DictHelper derive.");
+                        compile_error!("Unnamed fields for struct are not supported for Dict derive.");
                     }
                 }
             }
@@ -616,7 +616,7 @@ pub fn dict_helper_derive(input: TokenStream) -> TokenStream {
         }
         Data::Union(_) => {
             quote! {
-                compile_error!("Unions are not supported for DictHelper derive");
+                compile_error!("Unions are not supported for Dict derive");
             }
         }
     };

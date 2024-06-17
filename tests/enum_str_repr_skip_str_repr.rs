@@ -1,8 +1,8 @@
 use pyo3::pyclass;
-use pyo3_special_method_derive::StrReprHelper;
+use pyo3_special_method_derive::StrRepr;
 
 #[pyclass]
-#[derive(StrReprHelper)]
+#[derive(StrRepr)]
 #[allow(dead_code)]
 enum Tester {
     Alpha,

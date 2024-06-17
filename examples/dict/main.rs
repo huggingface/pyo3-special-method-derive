@@ -1,8 +1,8 @@
 use pyo3::{pyclass, types::PyAnyMethods, Python};
-use pyo3_special_method_derive::DictHelper;
+use pyo3_special_method_derive::Dict;
 
 #[pyclass]
-#[derive(DictHelper)]
+#[derive(Dict)]
 #[allow(dead_code)]
 struct Person {
     pub name: String,
