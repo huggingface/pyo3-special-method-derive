@@ -1,17 +1,15 @@
-[package]
-name = "pyo3_special_method_derive"
+[workspace]
+members = [
+    "pyo3_special_method_derive_core",
+    "pyo3_special_method_derive_example",
+]
+resolver = "2"
+
+[workspace.package]
 version = "0.2.1"
 edition = "2021"
 description = "Automatically derive Python dunder methods for your Rust code"
 license = "MIT"
 repository = "https://github.com/EricLBuehler/pyo3-special-method-derive"
 
-[dependencies]
-syn = "2.0.66"
-quote = "1.0"
-proc-macro2 = "1.0"
-quote_into = "0.2.0"
-pyo3 = { version = "0.21", features = ["multiple-pymethods"] }
-
-[lib]
-proc-macro = true
+[workspace.dependencies]

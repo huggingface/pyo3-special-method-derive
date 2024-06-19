@@ -183,6 +183,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "pyo3_special_method_derive"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e831c9f620de245243f105f2d764c59c32a853bd1c9fb34504116e0d6d094fad"
+dependencies = [
+ "proc-macro2",
+ "pyo3",
+ "quote",
+ "quote_into",
+ "syn 2.0.66",
+]
+
+[[package]]
+name = "pyo3_special_method_derive_example"
+version = "0.2.1"
+dependencies = [
+ "pyo3",
+ "pyo3_special_method_derive 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.36"
 source = "registry+https://github.com/rust-lang/crates.io-index"

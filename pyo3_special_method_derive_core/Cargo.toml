@@ -1,0 +1,17 @@
+[package]
+name = "pyo3_special_method_derive"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+syn = "2.0.66"
+quote = "1.0"
+proc-macro2 = "1.0"
+quote_into = "0.2.0"
+pyo3 = { version = "0.21", features = ["multiple-pymethods"] }
+
+[lib]
+proc-macro = true
