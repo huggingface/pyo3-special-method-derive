@@ -7,6 +7,7 @@ Set breakpoints for debugging, or simply run this program!
 
 import pyo3_smd_example
 
-person = pyo3_smd_example.Person()
+person = pyo3_smd_example.Person.new_dummy()
 
+# Put a breakpoint here
 print(person)

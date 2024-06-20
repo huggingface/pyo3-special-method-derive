@@ -29,7 +29,7 @@ pub struct Person {
 
 #[pymethods]
 impl Person {
-    #[new]
+    #[staticmethod]
     pub fn new_dummy() -> Self {
         Self {
             name: "Name here".to_string(),
@@ -39,6 +39,26 @@ impl Person {
                 city: "City here".to_string(),
                 street: "Street here".to_string(),
                 street_number: u32::MAX,
+            },
+        }
+    }
+    #[new]
+    pub fn new(
+        name: String,
+        age: u8,
+        country: String,
+        city: String,
+        street: String,
+        street_number: u32,
+    ) -> Self {
+        Self {
+            name,
+            age,
+            address: Address::House {
+                country,
+                city,
+                street,
+                street_number,
             },
         }
     }
