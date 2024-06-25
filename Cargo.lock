@@ -173,13 +173,13 @@ dependencies = [
 
 [[package]]
 name = "pyo3_special_method_derive"
-version = "0.2.2"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d13f69e075a00acf857fca6c3b45e722520042450cdf0ab987fccfe44c3cd472"
+checksum = "f7adf456206a1f7638cfb69cdcde280222287fbaeb293df40a5cd96c57f92c50"
 dependencies = [
  "proc-macro2",
  "pyo3",
- "pyo3_special_method_derive_lib 0.2.2",
+ "pyo3_special_method_derive_lib 0.2.4",
  "quote",
  "quote_into",
  "syn 2.0.68",
@@ -187,11 +187,11 @@ dependencies = [
 
 [[package]]
 name = "pyo3_special_method_derive"
-version = "0.2.4"
+version = "0.3.0"
 dependencies = [
  "proc-macro2",
  "pyo3",
- "pyo3_special_method_derive_lib 0.2.2",
+ "pyo3_special_method_derive_lib 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "quote",
  "quote_into",
  "syn 2.0.68",
@@ -199,22 +199,28 @@ dependencies = [
 
 [[package]]
 name = "pyo3_special_method_derive_example"
-version = "0.2.4"
+version = "0.3.0"
 dependencies = [
  "pyo3",
- "pyo3_special_method_derive 0.2.2",
- "pyo3_special_method_derive_lib 0.2.2",
+ "pyo3_special_method_derive 0.2.4",
+ "pyo3_special_method_derive_lib 0.2.4",
 ]
 
 [[package]]
 name = "pyo3_special_method_derive_lib"
-version = "0.2.2"
+version = "0.2.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a51b7a745a0dd6a7896e094a69503d8ae7f06324afda843f658298f55bc39c6c"
+checksum = "2b09c8a0bac361588dde732272f692955199d4e0be43cfa50fbda01e05183f98"
 
 [[package]]
 name = "pyo3_special_method_derive_lib"
-version = "0.2.4"
+version = "0.3.0"
+
+[[package]]
+name = "pyo3_special_method_derive_lib"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ee61e71376a5c2fdd9e2abb183c58f44b8a2005159b69f0d25ecdcbfed8b6aa"
 
 [[package]]
 name = "quote"
