@@ -187,7 +187,7 @@ dependencies = [
 
 [[package]]
 name = "pyo3_special_method_derive"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "proc-macro2",
  "pyo3",
@@ -199,7 +199,7 @@ dependencies = [
 
 [[package]]
 name = "pyo3_special_method_derive_example"
-version = "0.2.3"
+version = "0.2.4"
 dependencies = [
  "pyo3",
  "pyo3_special_method_derive 0.2.2",
@@ -214,7 +214,7 @@ checksum = "a51b7a745a0dd6a7896e094a69503d8ae7f06324afda843f658298f55bc39c6c"
 
 [[package]]
 name = "pyo3_special_method_derive_lib"
-version = "0.2.3"
+version = "0.2.4"
 
 [[package]]
 name = "quote"
