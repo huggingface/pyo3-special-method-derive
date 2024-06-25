@@ -4,6 +4,12 @@
 //! It also exports a macro to use the Debug and Display traits to generate a PyDebug and PyDisplay
 //! implementation.
 
+use std::{
+    cell::Cell,
+    collections::{BTreeMap, BTreeSet, HashMap, HashSet},
+    sync::{Mutex, RwLock},
+};
+
 /// Types which can be displayed into the `__repr__` implementation.
 pub trait PyDebug {
     fn fmt_debug(&self) -> String;
@@ -94,5 +100,149 @@ impl<T: PyDisplay> PyDisplay for Option<T> {
             Some(x) => x.fmt_display(),
             None => "None".to_string(),
         }
+    }
+}
+
+impl<T: PyDebug> PyDebug for RwLock<T> {
+    fn fmt_debug(&self) -> String {
+        match self.read() {
+            Ok(x) => x.fmt_debug(),
+            Err(_) => "None".to_string(),
+        }
+    }
+}
+
+impl<T: PyDisplay> PyDisplay for RwLock<T> {
+    fn fmt_display(&self) -> String {
+        match self.read() {
+            Ok(x) => x.fmt_display(),
+            Err(_) => "None".to_string(),
+        }
+    }
+}
+
+impl<T: PyDebug> PyDebug for Mutex<T> {
+    fn fmt_debug(&self) -> String {
+        match self.lock() {
+            Ok(x) => x.fmt_debug(),
+            Err(_) => "None".to_string(),
+        }
+    }
+}
+
+impl<T: PyDisplay> PyDisplay for Mutex<T> {
+    fn fmt_display(&self) -> String {
+        match self.lock() {
+            Ok(x) => x.fmt_display(),
+            Err(_) => "None".to_string(),
+        }
+    }
+}
+
+impl<T: PyDebug + Copy> PyDebug for Cell<T> {
+    fn fmt_debug(&self) -> String {
+        self.get().fmt_debug()
+    }
+}
+
+impl<T: PyDisplay + Copy> PyDisplay for Cell<T> {
+    fn fmt_display(&self) -> String {
+        self.get().fmt_display()
+    }
+}
+
+impl<K: PyDebug, V: PyDebug> PyDebug for HashMap<K, V> {
+    fn fmt_debug(&self) -> String {
+        format!(
+            "{{{}}}",
+            self.iter()
+                .map(|(k, v)| format!("{}: {}", k.fmt_debug(), v.fmt_debug()))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    }
+}
+
+impl<K: PyDisplay, V: PyDisplay> PyDisplay for HashMap<K, V> {
+    fn fmt_display(&self) -> String {
+        format!(
+            "{{{}}}",
+            self.iter()
+                .map(|(k, v)| format!("{}: {}", k.fmt_display(), v.fmt_display()))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    }
+}
+
+impl<V: PyDebug> PyDebug for HashSet<V> {
+    fn fmt_debug(&self) -> String {
+        format!(
+            "{{{}}}",
+            self.iter()
+                .map(|v| v.fmt_debug())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    }
+}
+
+impl<V: PyDisplay> PyDisplay for HashSet<V> {
+    fn fmt_display(&self) -> String {
+        format!(
+            "{{{}}}",
+            self.iter()
+                .map(|v| v.fmt_display())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    }
+}
+
+impl<K: PyDebug, V: PyDebug> PyDebug for BTreeMap<K, V> {
+    fn fmt_debug(&self) -> String {
+        format!(
+            "{{{}}}",
+            self.iter()
+                .map(|(k, v)| format!("{}: {}", k.fmt_debug(), v.fmt_debug()))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    }
+}
+
+impl<K: PyDisplay, V: PyDisplay> PyDisplay for BTreeMap<K, V> {
+    fn fmt_display(&self) -> String {
+        format!(
+            "{{{}}}",
+            self.iter()
+                .map(|(k, v)| format!("{}: {}", k.fmt_display(), v.fmt_display()))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    }
+}
+
+impl<V: PyDebug> PyDebug for BTreeSet<V> {
+    fn fmt_debug(&self) -> String {
+        format!(
+            "{{{}}}",
+            self.iter()
+                .map(|v| v.fmt_debug())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    }
+}
+
+impl<V: PyDisplay> PyDisplay for BTreeSet<V> {
+    fn fmt_display(&self) -> String {
+        format!(
+            "{{{}}}",
+            self.iter()
+                .map(|v| v.fmt_display())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
     }
 }
