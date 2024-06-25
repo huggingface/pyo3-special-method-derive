@@ -2,11 +2,12 @@
 members = [
     "pyo3_special_method_derive_core",
     "pyo3_special_method_derive_example",
+    "pyo3_special_method_derive_lib"
 ]
 resolver = "2"
 
 [workspace.package]
-version = "0.2.1"
+version = "0.2.2"
 edition = "2021"
 description = "Automatically derive Python dunder methods for your Rust code"
 license = "MIT"

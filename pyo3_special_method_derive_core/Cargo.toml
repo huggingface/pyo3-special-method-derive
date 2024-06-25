@@ -12,6 +12,6 @@ quote = "1.0"
 proc-macro2 = "1.0"
 quote_into = "0.2.0"
 pyo3 = { version = "0.21", features = ["multiple-pymethods"] }
-
+pyo3_special_method_derive_lib = { path = "../pyo3_special_method_derive_lib" }
 [lib]
 proc-macro = true

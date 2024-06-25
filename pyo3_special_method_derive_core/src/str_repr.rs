@@ -34,22 +34,32 @@ pub(crate) fn impl_formatter(input: &DeriveInput, ty: StrOrRepr) -> proc_macro2:
         match ty {
             StrOrRepr::ForStr => {
                 quote! {
-                    impl std::fmt::Display for #ident {
-                        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                            write!(f, "{}(", stringify!(#ident))?;
+                    impl pyo3_special_method_derive_lib::PyDisplay for #ident {
+                        fn fmt_display(&self) -> String {
+                            // TODO
+                            use pyo3_special_method_derive_lib::PyDebug;
+                            use pyo3_special_method_derive_lib::PyDisplay;
+
+                            let mut repr = "".to_string();
+                            repr += &format!("{}(", stringify!(#ident));
                             #(#body_display)*
-                            write!(f, ")")
+                            repr += ")";
+                            repr
                         }
                     }
                 }
             }
             StrOrRepr::ForRepr => {
                 quote! {
-                    impl std::fmt::Debug for #ident {
-                        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                            write!(f, "{}(", stringify!(#ident))?;
+                    impl pyo3_special_method_derive_lib::PyDebug for #ident {
+                        fn fmt_debug(&self) -> String {
+                            use pyo3_special_method_derive_lib::PyDebug;
+
+                            let mut repr = "".to_string();
+                            repr += &format!("{}(", stringify!(#ident));
                             #(#body_debug)*
-                            write!(f, ")")
+                            repr += ")";
+                            repr
                         }
                     }
                 }
@@ -59,24 +69,32 @@ pub(crate) fn impl_formatter(input: &DeriveInput, ty: StrOrRepr) -> proc_macro2:
         match ty {
             StrOrRepr::ForStr => {
                 quote! {
-                    impl std::fmt::Display for #ident {
-                        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    impl pyo3_special_method_derive_lib::PyDisplay for #ident {
+                        fn fmt_display(&self) -> String {
+                            // TODO
+                            use pyo3_special_method_derive_lib::PyDebug;
+                            use pyo3_special_method_derive_lib::PyDisplay;
+
+                            let mut repr = "".to_string();
                             match self {
                                 #(#body_display)*
                             }
-                            write!(f, "")
+                            repr
                         }
                     }
                 }
             }
             StrOrRepr::ForRepr => {
                 quote! {
-                    impl std::fmt::Debug for #ident {
-                        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    impl pyo3_special_method_derive_lib::PyDebug for #ident {
+                        fn fmt_debug(&self) -> String {
+                            use pyo3_special_method_derive_lib::PyDebug;
+
+                            let mut repr = "".to_string();
                             match self {
                                 #(#body_debug)*
                             }
-                            write!(f, "")
+                            repr
                         }
                     }
                 }
@@ -126,16 +144,19 @@ fn generate_fmt_impl_for_struct(
         .enumerate()
         .map(|(i, field)| {
             let postfix = if i + 1 < fields.len() { ", " } else { "" };
+            let formatter = if is_repr { quote! { fmt_debug } } else { quote! { fmt_display } };
             match &field.ident {
                 Some(ident) => {
                     quote! {
-                        write!(f, "{}={:?}{}", stringify!(#ident), self.#ident, #postfix)?;
+                        repr += &format!("{}={}{}", stringify!(#ident), self.#ident.#formatter(), #postfix);
                     }
                 }
                 None => {
                     // If the field doesn't have a name, we generate a name based on its index
                     let index = syn::Index::from(i);
-                    quote! { write!(f, "{}={:?}{}", stringify!(#index), self.#index, #postfix)?; }
+                    quote! {
+                        repr += &format!("{}={}{}", stringify!(#index), self.#index.#formatter(), #postfix);
+                    }
                 }
             }
         })
@@ -182,11 +203,11 @@ fn generate_fmt_impl_for_enum(
                 Fields::Unit => {
                     if !to_skip {
                         quote! {
-                            Self::#ident => write!(f, "{}.{}", stringify!(#name), stringify!(#ident))?,
+                            Self::#ident => repr += &format!("{}.{}", stringify!(#name), stringify!(#ident)),
                         }
                     } else {
                         quote! {
-                            Self::#ident => write!(f, "<variant skipped>")?,
+                            Self::#ident => repr += "<variant skipped>",
                         }
                     }
                 }
@@ -196,23 +217,28 @@ fn generate_fmt_impl_for_enum(
                 Fields::Named(fields) => {
                     let field_names: Vec<_> = fields.named.iter().map(|f| &f.ident).collect();
                     let mut format_string = "{}.{}(".to_string();
+                    let formatter = if is_repr { quote! { fmt_debug } } else { quote! { fmt_display } };
                     for (i, name) in field_names.iter().enumerate() {
                         if i == 0 {
-                            format_string = format!("{format_string}{}={{:?}}", name.as_ref().unwrap());
+                            format_string = format!("{format_string}{}={{}}", name.as_ref().unwrap());
                         } else {
-                            format_string = format!("{format_string}, {}={{:?}}", name.as_ref().unwrap());
+                            format_string = format!("{format_string}, {}={{}}", name.as_ref().unwrap());
                         }
                     }
                     format_string = format!("{format_string})");
                     if !to_skip {
+                        let mut names = Vec::new();
+                        for name in field_names.clone() {
+                            names.push(quote! { #name.#formatter() });
+                        }
                         quote! {
-                            Self::#ident { #(#field_names),* } => write!(f, #format_string, stringify!(#name), stringify!(#ident), #(#field_names),*)?,
+                            Self::#ident { #(#field_names),* } => repr += &format!(#format_string, stringify!(#name), stringify!(#ident), #(#names),*),
                         }
                     } else {
                         quote! {
                             Self::#ident { #(#field_names),* } => {
                                 let _ = (#(#field_names),*);
-                                write!(f, "<variant skipped>")?;
+                                repr += "<variant skipped>";
                             }
                         }
                     }

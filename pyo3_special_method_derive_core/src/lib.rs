@@ -1,5 +1,8 @@
 //! Derive macros to help with Rust PyO3 support.
 //!
+//! Please see [these docs](https://docs.rs/pyo3_special_method_derive/0.2.2/pyo3_special_method_derive_lib/) for the PyDisplay and PyDebug
+//! traits which power `Str` and `Repr`.
+//!
 //! This crate automatically derives the following functions for structs and enums:
 //! - `__str__`
 //! - `__repr__`
@@ -219,8 +222,9 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
 
 /// Add a `__str__` method to the struct or enum.
 ///
-/// Important note: This implements the Display trait so any conflicting implementations
-/// should be removed to use this. Additionally, all internal types should implement [`Debug`].
+/// This expects every type for which its field or variant is not skipped to implement the PyDisplay trait.
+/// Certain implementations are automatically provided, but you can implement the required trait yourself
+/// or use a provided convenience macro.
 ///
 /// - Skip printing of certain fields by adding the `#[pyo3_smd(skip)]` attribute macro
 /// - To specialze skipping for `__str__`, use the `#[pyo3_smd_str(skip)]` attributes
@@ -254,7 +258,8 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
         #[pyo3::pymethods]
         impl #name {
             pub fn __str__(&self) -> String {
-                format!("{self}")
+                use pyo3_special_method_derive_lib::PyDisplay;
+                format!("{}", <Self as PyDisplay>::fmt_display(self))
             }
         }
     };
@@ -264,8 +269,9 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 
 /// Add a `__repr__` method to the struct or enum.
 ///
-/// Important note: This implements the [`Debug`] trait so any conflicting implementations
-/// should be removed to use this.
+/// This expects every type for which its field or variant is not skipped to implement the PyDebug trait.
+/// Certain implementations are automatically provided, but you can implement the required trait yourself
+/// or use a provided convenience macro.
 ///
 /// - Skip printing of certain fields by adding the `#[pyo3_smd(skip)]` attribute macro
 /// - To specialze skipping for `__repr__`, use the `#[pyo3_smd_repr(skip)]` attributes
@@ -299,7 +305,8 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
         #[pyo3::pymethods]
         impl #name {
             pub fn __repr__(&self) -> String {
-                format!("{self:?}")
+                use pyo3_special_method_derive_lib::PyDebug;
+                format!("{}", <Self as PyDebug>::fmt_debug(self))
             }
         }
     };
