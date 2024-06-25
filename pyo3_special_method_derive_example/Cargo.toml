@@ -9,6 +9,7 @@ repository.workspace = true
 [dependencies]
 pyo3 = { version = "0.21.2", features = ["multiple-pymethods"] }
 pyo3_special_method_derive = "0.2.0"
+pyo3_special_method_derive_lib = "0.2.2"
 
 [lib]
 name = "pyo3_smd_example"
