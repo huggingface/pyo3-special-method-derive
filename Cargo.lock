@@ -177,6 +177,7 @@ version = "0.2.1"
 dependencies = [
  "proc-macro2",
  "pyo3",
+ "pyo3_special_method_derive_lib",
  "quote",
  "quote_into",
  "syn 2.0.66",
@@ -202,6 +203,10 @@ dependencies = [
  "pyo3",
  "pyo3_special_method_derive 0.2.1 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
+
+[[package]]
+name = "pyo3_special_method_derive_lib"
+version = "0.2.1"
 
 [[package]]
 name = "quote"

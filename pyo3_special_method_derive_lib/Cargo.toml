@@ -1,0 +1,9 @@
+[package]
+name = "pyo3_special_method_derive_lib"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]

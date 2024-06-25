@@ -254,7 +254,8 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
         #[pyo3::pymethods]
         impl #name {
             pub fn __str__(&self) -> String {
-                format!("{self}")
+                use pyo3_special_method_derive_lib::PyDisplay;
+                format!("{}", <Self as PyDisplay>::fmt_display(self))
             }
         }
     };
@@ -299,7 +300,8 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
         #[pyo3::pymethods]
         impl #name {
             pub fn __repr__(&self) -> String {
-                format!("{self:?}")
+                use pyo3_special_method_derive_lib::PyDebug;
+                format!("{}", <Self as PyDebug>::fmt_debug(self))
             }
         }
     };
