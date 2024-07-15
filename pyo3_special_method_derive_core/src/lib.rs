@@ -14,6 +14,9 @@
 //! - Skip variants or fields for `__str__` or `__repr__` differently with the `#[pyo3_smd_str(skip)]` and `#[pyo3_smd_repr(skip)]` attributes
 //! - Struct fields which are not `pub` are skipped automatically
 //!
+//! When you have custom Rust structs which need to implement `PyDisplay` and `PyDebug`, you should use the `AutoDisplay` and `AutoDebug` traits.
+//! This will have the same output as `Str` and `Repr` respectively.
+//!
 
 extern crate proc_macro;
 use proc_macro::TokenStream;
@@ -267,6 +270,31 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
+/// Implement `PyDisplay` on a struct or enum.
+///
+/// This has the same requirements and behavior of [`Str`].
+///
+/// ## Example
+/// ```
+/// use pyo3::pyclass;
+/// use pyo3_special_method_derive::AutoDisplay;
+/// #[pyclass]
+/// #[derive(AutoDisplay)]
+/// struct Person {
+///     pub name: String,
+///     address: String,
+///     #[pyo3_smd(skip)]
+///     pub phone_number: String,
+/// }
+/// ```
+#[proc_macro_derive(AutoDisplay, attributes(pyo3_smd, pyo3_smd_str))]
+pub fn auto_display(input_stream: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input_stream as DeriveInput);
+
+    let display_debug_derive_body = impl_formatter(&input, StrOrRepr::ForStr);
+    TokenStream::from(display_debug_derive_body)
+}
+
 /// Add a `__repr__` method to the struct or enum.
 ///
 /// This expects every type for which its field or variant is not skipped to implement the PyDebug trait.
@@ -312,6 +340,31 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
     };
 
     TokenStream::from(expanded)
+}
+
+/// Implement `PyDebug` on a struct or enum.
+///
+/// This has the same requirements and behavior of [`Repr`].
+///
+/// ## Example
+/// ```
+/// use pyo3::pyclass;
+/// use pyo3_special_method_derive::AutoDebug;
+/// #[pyclass]
+/// #[derive(AutoDebug)]
+/// struct Person {
+///     pub name: String,
+///     address: String,
+///     #[pyo3_smd(skip)]
+///     pub phone_number: String,
+/// }
+/// ```
+#[proc_macro_derive(AutoDebug, attributes(pyo3_smd, pyo3_smd_str))]
+pub fn auto_debug(input_stream: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input_stream as DeriveInput);
+
+    let display_debug_derive_body = impl_formatter(&input, StrOrRepr::ForRepr);
+    TokenStream::from(display_debug_derive_body)
 }
 
 /// Add a `__getattr__` method to a struct or enum.
