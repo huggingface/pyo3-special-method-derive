@@ -13,9 +13,9 @@ use std::{
     },
 };
 
-/// Number of elements to print for each type with an implementation in this crate,
-/// defaults to 100.
-pub static ELLIPSIS_N: AtomicUsize = AtomicUsize::new(100);
+/// Number of *characters* to display for each implementation in this crate,
+/// defaults to 100. May be a few chars above or below.
+pub static ELLIPSIS_CHAR_N: AtomicUsize = AtomicUsize::new(100);
 
 /// Types which can be displayed into the `__repr__` implementation.
 pub trait PyDebug {
@@ -69,51 +69,42 @@ pydebug_pydisplay!(bool);
 pydebug_pydisplay!(String);
 pydebug_pydisplay!(&str);
 
+fn do_format(start: char, end: char, iter: impl Iterator<Item = String>) -> String {
+    let n = ELLIPSIS_CHAR_N.load(Ordering::Relaxed);
+    let mut res = "".to_string();
+    for x in iter {
+        // + 2 is for the sides
+        if res.len() + 2 + x.len() <= n {
+            res += &format!("{x}, ");
+        } else {
+            res += "..., ";
+            break;
+        }
+    }
+    format!("{start}{}{end}", &res[..res.len() - 2])
+}
+
 impl<T: PyDebug> PyDebug for &[T] {
     fn fmt_debug(&self) -> String {
-        let n = ELLIPSIS_N.load(Ordering::Relaxed);
-        let map = self.iter().map(|x| x.fmt_debug()).take(n);
-        if self.len() <= n {
-            format!("[{}]", map.collect::<Vec<_>>().join(", "))
-        } else {
-            format!("[{}, ...]", map.collect::<Vec<_>>().join(", "))
-        }
+        do_format('[', ']', self.iter().map(|x| x.fmt_debug()))
     }
 }
 
 impl<T: PyDisplay> PyDisplay for &[T] {
     fn fmt_display(&self) -> String {
-        let n = ELLIPSIS_N.load(Ordering::Relaxed);
-        let map = self.iter().map(|x| x.fmt_display()).take(n);
-        if self.len() <= n {
-            format!("[{}]", map.collect::<Vec<_>>().join(", "))
-        } else {
-            format!("[{}, ...]", map.collect::<Vec<_>>().join(", "))
-        }
+        do_format('[', ']', self.iter().map(|x| x.fmt_display()))
     }
 }
 
 impl<T: PyDebug> PyDebug for Vec<T> {
     fn fmt_debug(&self) -> String {
-        let n = ELLIPSIS_N.load(Ordering::Relaxed);
-        let map = self.iter().map(|x| x.fmt_debug()).take(n);
-        if self.len() <= n {
-            format!("[{}]", map.collect::<Vec<_>>().join(", "))
-        } else {
-            format!("[{}, ...]", map.collect::<Vec<_>>().join(", "))
-        }
+        do_format('[', ']', self.iter().map(|x| x.fmt_debug()))
     }
 }
 
 impl<T: PyDisplay> PyDisplay for Vec<T> {
     fn fmt_display(&self) -> String {
-        let n = ELLIPSIS_N.load(Ordering::Relaxed);
-        let map = self.iter().map(|x| x.fmt_display()).take(n);
-        if self.len() <= n {
-            format!("[{}]", map.collect::<Vec<_>>().join(", "))
-        } else {
-            format!("[{}, ...]", map.collect::<Vec<_>>().join(", "))
-        }
+        do_format('[', ']', self.iter().map(|x| x.fmt_display()))
     }
 }
 
@@ -185,108 +176,68 @@ impl<T: PyDisplay + Copy> PyDisplay for Cell<T> {
 
 impl<K: PyDebug, V: PyDebug> PyDebug for HashMap<K, V> {
     fn fmt_debug(&self) -> String {
-        let n = ELLIPSIS_N.load(Ordering::Relaxed);
-        let map = self
-            .iter()
-            .map(|(k, v)| format!("{}: {}", k.fmt_debug(), v.fmt_debug()))
-            .take(n);
-        if self.len() <= n {
-            format!("{{{}}}", map.collect::<Vec<_>>().join(", "))
-        } else {
-            format!("{{{}, ...}}", map.collect::<Vec<_>>().join(", "))
-        }
+        do_format(
+            '{',
+            '}',
+            self.iter()
+                .map(|(k, v)| format!("{}: {}", k.fmt_debug(), v.fmt_debug())),
+        )
     }
 }
 
 impl<K: PyDisplay, V: PyDisplay> PyDisplay for HashMap<K, V> {
     fn fmt_display(&self) -> String {
-        let n = ELLIPSIS_N.load(Ordering::Relaxed);
-        let map = self
-            .iter()
-            .map(|(k, v)| format!("{}: {}", k.fmt_display(), v.fmt_display()))
-            .take(n);
-        if self.len() <= n {
-            format!("{{{}}}", map.collect::<Vec<_>>().join(", "))
-        } else {
-            format!("{{{}, ...}}", map.collect::<Vec<_>>().join(", "))
-        }
+        do_format(
+            '{',
+            '}',
+            self.iter()
+                .map(|(k, v)| format!("{}: {}", k.fmt_display(), v.fmt_display())),
+        )
     }
 }
 
 impl<V: PyDebug> PyDebug for HashSet<V> {
     fn fmt_debug(&self) -> String {
-        let n = ELLIPSIS_N.load(Ordering::Relaxed);
-        let map = self.iter().map(|v| v.fmt_debug()).take(n);
-        if self.len() <= n {
-            format!("{{{}}}", map.collect::<Vec<_>>().join(", "))
-        } else {
-            format!("{{{}, ...}}", map.collect::<Vec<_>>().join(", "))
-        }
+        do_format('{', '}', self.iter().map(|v| v.fmt_debug()))
     }
 }
 
 impl<V: PyDisplay> PyDisplay for HashSet<V> {
     fn fmt_display(&self) -> String {
-        let n = ELLIPSIS_N.load(Ordering::Relaxed);
-        let map = self.iter().map(|v| v.fmt_display()).take(n);
-        if self.len() <= n {
-            format!("{{{}}}", map.collect::<Vec<_>>().join(", "))
-        } else {
-            format!("{{{}, ...}}", map.collect::<Vec<_>>().join(", "))
-        }
+        do_format('{', '}', self.iter().map(|v| v.fmt_display()))
     }
 }
 
 impl<K: PyDebug, V: PyDebug> PyDebug for BTreeMap<K, V> {
     fn fmt_debug(&self) -> String {
-        let n = ELLIPSIS_N.load(Ordering::Relaxed);
-        let map = self
-            .iter()
-            .map(|(k, v)| format!("{}: {}", k.fmt_debug(), v.fmt_debug()))
-            .take(n);
-        if self.len() <= n {
-            format!("{{{}}}", map.collect::<Vec<_>>().join(", "))
-        } else {
-            format!("{{{}, ...}}", map.collect::<Vec<_>>().join(", "))
-        }
+        do_format(
+            '{',
+            '}',
+            self.iter()
+                .map(|(k, v)| format!("{}: {}", k.fmt_debug(), v.fmt_debug())),
+        )
     }
 }
 
 impl<K: PyDisplay, V: PyDisplay> PyDisplay for BTreeMap<K, V> {
     fn fmt_display(&self) -> String {
-        let n = ELLIPSIS_N.load(Ordering::Relaxed);
-        let map = self
-            .iter()
-            .map(|(k, v)| format!("{}: {}", k.fmt_display(), v.fmt_display()))
-            .take(n);
-        if self.len() <= n {
-            format!("{{{}}}", map.collect::<Vec<_>>().join(", "))
-        } else {
-            format!("{{{}, ...}}", map.collect::<Vec<_>>().join(", "))
-        }
+        do_format(
+            '{',
+            '}',
+            self.iter()
+                .map(|(k, v)| format!("{}: {}", k.fmt_display(), v.fmt_display())),
+        )
     }
 }
 
 impl<V: PyDebug> PyDebug for BTreeSet<V> {
     fn fmt_debug(&self) -> String {
-        let n = ELLIPSIS_N.load(Ordering::Relaxed);
-        let map = self.iter().map(|v| v.fmt_debug()).take(n);
-        if self.len() <= n {
-            format!("{{{}}}", map.collect::<Vec<_>>().join(", "))
-        } else {
-            format!("{{{}, ...}}", map.collect::<Vec<_>>().join(", "))
-        }
+        do_format('{', '}', self.iter().map(|v| v.fmt_debug()))
     }
 }
 
 impl<V: PyDisplay> PyDisplay for BTreeSet<V> {
     fn fmt_display(&self) -> String {
-        let n = ELLIPSIS_N.load(Ordering::Relaxed);
-        let map = self.iter().map(|v| v.fmt_display()).take(n);
-        if self.len() <= n {
-            format!("{{{}}}", map.collect::<Vec<_>>().join(", "))
-        } else {
-            format!("{{{}, ...}}", map.collect::<Vec<_>>().join(", "))
-        }
+        do_format('{', '}', self.iter().map(|v| v.fmt_display()))
     }
 }
