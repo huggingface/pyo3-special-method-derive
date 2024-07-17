@@ -14,7 +14,7 @@ pub enum City {
 pub struct Country {
     capital : Option<City>,   
     pub regions: Vec<City> ,
-    pub(crate) hash: u128,
+    pub(crate) hash: Option<u128>,
     inhabitants: HashMap<City, u32>, // it's private but I still want to be able to display it! 
 }
 
@@ -28,6 +28,8 @@ pub enum MyObjectWrapper {
     City(City),
     CountryRegion(Region)
 }
+
+
 #[pyclass]
 #[derive(Repr, Str, Clone)]
 pub struct PyCity{

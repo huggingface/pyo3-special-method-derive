@@ -29,6 +29,7 @@ mod str_repr;
 const ATTR_NAMESPACE: &str = "pyo3_smd";
 const ATTR_NAMESPACE_STR: &str = "pyo3_smd_str";
 const ATTR_NAMESPACE_REPR: &str = "pyo3_smd_repr";
+const ATTR_NAMESPACE_DISPLAY: &str = "auto_display";
 
 /// Add a `__dir__` method to a struct or enum.
 ///
@@ -283,8 +284,10 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 /// struct Person {
 ///     pub name: String,
 ///     address: String,
-///     #[pyo3_smd(skip)]
+///     #[auto_display(skip)]
 ///     pub phone_number: String,
+///     #[auto_display] // -> force display of private field
+///     hash: u32,
 /// }
 /// ```
 #[proc_macro_derive(AutoDisplay, attributes(pyo3_smd, pyo3_smd_str))]
