@@ -21,7 +21,7 @@
 extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::quote;
-use str_repr::{impl_formatter, StrOrRepr};
+use str_repr::{impl_formatter, DeriveType};
 use syn::{parse_macro_input, Data, DeriveInput, Fields, Visibility};
 
 mod str_repr;
@@ -253,21 +253,23 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
     // Get the name of the struct
     let name = &input.ident;
 
-    let display_debug_derive_body = impl_formatter(&input, StrOrRepr::ForStr);
+    let display_derive_body = impl_formatter(&input, DeriveType::ForAutoDisplay);
 
+    println!("{}\n", display_derive_body);
     let expanded = quote! {
-        #display_debug_derive_body
+        #display_derive_body
 
         #[pyo3::pymethods]
         impl #name {
             pub fn __str__(&self) -> String {
-                use pyo3_special_method_derive_lib::PyDisplay;
-                format!("{}", <Self as PyDisplay>::fmt_display(self))
+                format!("{}", self)
             }
         }
     };
 
-    TokenStream::from(expanded)
+    let res = TokenStream::from(expanded);
+    println!("{}\n", res);
+    res
 }
 
 /// Implement `PyDisplay` on a struct or enum.
@@ -276,9 +278,7 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 ///
 /// ## Example
 /// ```
-/// use pyo3::pyclass;
 /// use pyo3_special_method_derive::AutoDisplay;
-/// #[pyclass]
 /// #[derive(AutoDisplay)]
 /// struct Person {
 ///     pub name: String,
@@ -291,7 +291,7 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 pub fn auto_display(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
 
-    let display_debug_derive_body = impl_formatter(&input, StrOrRepr::ForStr);
+    let display_debug_derive_body = impl_formatter(&input, DeriveType::ForAutoDisplay);
     TokenStream::from(display_debug_derive_body)
 }
 
@@ -325,7 +325,7 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
     // Get the name of the struct
     let name = &input.ident;
 
-    let display_debug_derive_body = impl_formatter(&input, StrOrRepr::ForRepr);
+    let display_debug_derive_body = impl_formatter(&input, DeriveType::ForAutoDebug);
 
     let expanded = quote! {
         #display_debug_derive_body
@@ -333,8 +333,7 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
         #[pyo3::pymethods]
         impl #name {
             pub fn __repr__(&self) -> String {
-                use pyo3_special_method_derive_lib::PyDebug;
-                format!("{}", <Self as PyDebug>::fmt_debug(self))
+                format!("{}", self)
             }
         }
     };
@@ -348,9 +347,7 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
 ///
 /// ## Example
 /// ```
-/// use pyo3::pyclass;
 /// use pyo3_special_method_derive::AutoDebug;
-/// #[pyclass]
 /// #[derive(AutoDebug)]
 /// struct Person {
 ///     pub name: String,
@@ -363,7 +360,7 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
 pub fn auto_debug(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
 
-    let display_debug_derive_body = impl_formatter(&input, StrOrRepr::ForRepr);
+    let display_debug_derive_body = impl_formatter(&input, DeriveType::ForAutoDebug);
     TokenStream::from(display_debug_derive_body)
 }
 

@@ -16,97 +16,71 @@ macro_rules! create_body {
     };
 }
 
-pub(crate) enum StrOrRepr {
-    ForStr,
-    ForRepr,
+pub(crate) enum DeriveType {
+    ForAutoDisplay,
+    ForAutoDebug,
 }
 
 // Internal function to generate impls of the custom trait: `ExtensionRepr|ExtensionStr{ident}`
-pub(crate) fn impl_formatter(input: &DeriveInput, ty: StrOrRepr) -> proc_macro2::TokenStream {
+pub(crate) fn impl_formatter(input: &DeriveInput, ty: DeriveType) -> proc_macro2::TokenStream {
     // Get the name of the struct
     let ident = &input.ident;
+    // Determine if the implementation is for a "repr" type
+    let is_repr = matches!(ty, DeriveType::ForAutoDebug);
 
-    let body_display = create_body!(input, ident, matches!(ty, StrOrRepr::ForRepr));
+    // Create body for display and debug
+    let body_display = create_body!(input, ident, !is_repr);
+    let body_debug = create_body!(input, ident, is_repr);
 
-    let body_debug = create_body!(input, ident, matches!(ty, StrOrRepr::ForRepr));
+    let debug = quote!{
+        let mut repr = "".to_string();
+        repr += &format!("{}(", stringify!(#ident));
+        #body_debug
+        repr += ")";
+    };
 
-    if matches!(input.data, syn::Data::Struct(_)) {
-        match ty {
-            StrOrRepr::ForStr => {
-                quote! {
-                    impl pyo3_special_method_derive_lib::PyDisplay for #ident {
-                        fn fmt_display(&self) -> String {
-                            // TODO
-                            use pyo3_special_method_derive_lib::PyDebug;
-                            use pyo3_special_method_derive_lib::PyDisplay;
+    let fmt =  quote!{
+        let mut repr = "".to_string();
+        repr += &format!("{}(", stringify!(#ident));
+        #body_display
+        repr += ")"; 
+    };
 
-                            let mut repr = "".to_string();
-                            repr += &format!("{}(", stringify!(#ident));
-                            #(#body_display)*
-                            repr += ")";
-                            repr
-                        }
-                    }
-                }
+
+
+    // Determine which traits to implement
+    let (ty_trait, ty_fn) = match ty {
+        DeriveType::ForAutoDisplay => (
+            quote! { impl std::fmt::Display },
+            quote! {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {#fmt; write!(f, "{}", repr)}
+            },
+        ),
+        DeriveType::ForAutoDebug => (
+            quote! { impl std::fmt::Debug },
+            quote! {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {#debug; write!(f, "{}", repr)}
             }
-            StrOrRepr::ForRepr => {
-                quote! {
-                    impl pyo3_special_method_derive_lib::PyDebug for #ident {
-                        fn fmt_debug(&self) -> String {
-                            use pyo3_special_method_derive_lib::PyDebug;
-
-                            let mut repr = "".to_string();
-                            repr += &format!("{}(", stringify!(#ident));
-                            #(#body_debug)*
-                            repr += ")";
-                            repr
-                        }
-                    }
-                }
+        ),
+    };
+    
+    let res = if !ty_trait.is_empty() {
+        quote! {
+            #ty_trait for #ident {
+                #ty_fn
             }
         }
     } else {
-        match ty {
-            StrOrRepr::ForStr => {
-                quote! {
-                    impl pyo3_special_method_derive_lib::PyDisplay for #ident {
-                        fn fmt_display(&self) -> String {
-                            // TODO
-                            use pyo3_special_method_derive_lib::PyDebug;
-                            use pyo3_special_method_derive_lib::PyDisplay;
-
-                            let mut repr = "".to_string();
-                            match self {
-                                #(#body_display)*
-                            }
-                            repr
-                        }
-                    }
-                }
-            }
-            StrOrRepr::ForRepr => {
-                quote! {
-                    impl pyo3_special_method_derive_lib::PyDebug for #ident {
-                        fn fmt_debug(&self) -> String {
-                            use pyo3_special_method_derive_lib::PyDebug;
-
-                            let mut repr = "".to_string();
-                            match self {
-                                #(#body_debug)*
-                            }
-                            repr
-                        }
-                    }
-                }
-            }
-        }
-    }
+        quote! {}
+    };
+    println!("{}\n", res);
+    res
 }
 
 fn generate_fmt_impl_for_struct(
     data_struct: &syn::DataStruct,
     is_repr: bool,
-) -> Vec<proc_macro2::TokenStream> {
+) -> proc_macro2::TokenStream {
     let fields = &data_struct.fields;
     let fields = fields
         .iter()
@@ -144,92 +118,99 @@ fn generate_fmt_impl_for_struct(
         .enumerate()
         .map(|(i, field)| {
             let postfix = if i + 1 < fields.len() { ", " } else { "" };
-            let formatter = if is_repr { quote! { fmt_debug } } else { quote! { fmt_display } };
+            let formatter = if is_repr { "{}={:?}{}" } else {  "{}={}{}" };
             match &field.ident {
                 Some(ident) => {
                     quote! {
-                        repr += &format!("{}={}{}", stringify!(#ident), self.#ident.#formatter(), #postfix);
+                        repr += &format!(#formatter, stringify!(#ident), self.#ident, #postfix);
                     }
                 }
                 None => {
                     // If the field doesn't have a name, we generate a name based on its index
                     let index = syn::Index::from(i);
                     quote! {
-                        repr += &format!("{}={}{}", stringify!(#index), self.#index.#formatter(), #postfix);
+                        repr += &format!(#formatter stringify!(#index), self.#index, #postfix);
                     }
                 }
             }
         })
         .collect::<Vec<_>>();
     // Collect the mapped tokens into a TokenStream
-    field_fmts
+    quote!{#(#field_fmts)*}
 }
 
 fn generate_fmt_impl_for_enum(
     data_enum: &syn::DataEnum,
     name: &Ident,
     is_repr: bool,
-) -> Vec<proc_macro2::TokenStream> {
+) ->proc_macro2::TokenStream {
     let variants = data_enum.variants.iter().collect::<Vec<_>>();
-    variants.iter()
+    let arms = variants.iter()
         .map(|variant| {
             let ident = &variant.ident;
             let to_skip = variant.attrs.iter().any(|attr| {
                 let mut is_skip = false;
-                attr.parse_nested_meta(|meta| {
-                    is_skip = meta.path.is_ident("skip");
-                    Ok(())
-                })
-                .unwrap();
-                let skip_direct = attr.path().is_ident(ATTR_NAMESPACE) && is_skip;
-
                 let namespace = if is_repr {
                     ATTR_NAMESPACE_REPR
                 } else {
                     ATTR_NAMESPACE_STR
-                };
-                let mut is_skip = false;
-                attr.parse_nested_meta(|meta| {
-                    is_skip = meta.path.is_ident("skip");
-                    Ok(())
-                })
-                .unwrap();
-                let is_specific_skip = attr.path().is_ident(namespace) && is_skip;
-
-                is_specific_skip || skip_direct
+                };               
+                if attr.path().is_ident(namespace) { // only parse ATTR_NAMESPACE and not [serde] or [default]
+                    attr.parse_nested_meta(|meta| {
+                        is_skip = meta.path.is_ident("skip");
+                        Ok(())
+                    })
+                    .unwrap();
+                }
+                is_skip    
             }
             );
+            println!("Processing {}, {}", name, ident);
             match &variant.fields {
                 Fields::Unit => {
                     if !to_skip {
                         quote! {
-                            Self::#ident => repr += &format!("{}.{}", stringify!(#name), stringify!(#ident)),
+                            Self::#ident => repr += &format!("{}", stringify!(#ident)),
                         }
                     } else {
                         quote! {
                             Self::#ident => repr += "<variant skipped>",
                         }
-                    }
+                    } 
+                    // potantially for a more pythonic print, {}.{} replace by just {}. Ex: PrependScheme.First -> "first"
+                    // as in most cases, we have something like Class(adress = ) and don't want Adress.Dummy, but just "dummy"
+                    // Maybe if Str then we have "{}" but AutoDisplay is rust so "{}.{}".
                 }
-                Fields::Unnamed(_) => {
-                    unreachable!("Unnamed fields are not supported for enums with PyO3.")
+                syn::Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
+                    // Tuple variant with one field
+                    if !to_skip {
+                        let quote = 
+                        quote! { #name::#ident(ref single) => {&format!("{}", single);} };
+                        print!("{}\n",quote);
+                        quote
+                    } else {
+                        println!("Skipping {}, {}", ident, name);
+                        quote! {
+                            #ident => repr += "<variant skipped>",
+                        }
+                    }  // TODO now that we have AutoDisplay we want this
                 }
                 Fields::Named(fields) => {
                     let field_names: Vec<_> = fields.named.iter().map(|f| &f.ident).collect();
                     let mut format_string = "{}.{}(".to_string();
-                    let formatter = if is_repr { quote! { fmt_debug } } else { quote! { fmt_display } };
+                    let formatter = if is_repr { "{:?}" } else { "{}"};
                     for (i, name) in field_names.iter().enumerate() {
                         if i == 0 {
-                            format_string = format!("{format_string}{}={{}}", name.as_ref().unwrap());
+                            format_string = format!("{format_string}{}={formatter}", name.as_ref().unwrap());
                         } else {
-                            format_string = format!("{format_string}, {}={{}}", name.as_ref().unwrap());
+                            format_string = format!("{format_string}, {}={formatter}", name.as_ref().unwrap());
                         }
                     }
                     format_string = format!("{format_string})");
                     if !to_skip {
                         let mut names = Vec::new();
                         for name in field_names.clone() {
-                            names.push(quote! { #name.#formatter() });
+                            names.push(quote! { #name });
                         }
                         quote! {
                             Self::#ident { #(#field_names),* } => repr += &format!(#format_string, stringify!(#name), stringify!(#ident), #(#names),*),
@@ -243,6 +224,15 @@ fn generate_fmt_impl_for_enum(
                         }
                     }
                 }
+                _ => {
+                    // Default case: stringify the variant name
+                    quote! {  &format!("{}", stringify!(#ident)); }
+                }
             }
-    }).collect::<Vec<_>>()
+    }).collect::<Vec<_>>();
+    quote! {
+        match self {
+            #(#arms)*
+        }
+    }
 }
