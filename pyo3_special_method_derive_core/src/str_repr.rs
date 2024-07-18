@@ -87,12 +87,14 @@ fn generate_fmt_impl_for_struct(
         .filter(|f| {
             !f.attrs.iter().any(|attr| {
                 let mut is_skip = false;
-                attr.parse_nested_meta(|meta| {
-                    is_skip = meta.path.is_ident("skip");
-                    Ok(())
-                })
-                .unwrap();
-                attr.path().is_ident(ATTR_NAMESPACE) && is_skip
+                if attr.path().is_ident(ATTR_NAMESPACE_STR) { // only parse ATTR_NAMESPACE and not [serde] or [default]
+                    attr.parse_nested_meta(|meta| {
+                        is_skip = meta.path.is_ident("skip");
+                        Ok(())
+                    })
+                    .unwrap();
+                }
+                is_skip    
             })
         })
         .filter(|f| {
