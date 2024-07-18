@@ -68,12 +68,14 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
                         .filter(|f| {
                             !f.attrs.iter().any(|attr| {
                                 let mut is_skip = false;
-                                attr.parse_nested_meta(|meta| {
-                                    is_skip = meta.path.is_ident("skip");
-                                    Ok(())
-                                })
-                                .unwrap();
-                                attr.path().is_ident(ATTR_NAMESPACE) && is_skip
+                                if attr.path().is_ident(ATTR_NAMESPACE) { // only parse ATTR_NAMESPACE and not [serde] or [default]
+                                    attr.parse_nested_meta(|meta| {
+                                        is_skip = meta.path.is_ident("skip");
+                                        Ok(())
+                                    })
+                                    .unwrap();
+                                }
+                                is_skip
                             })
                         })
                         .filter(|f| matches!(f.vis, Visibility::Public(_)))
@@ -132,12 +134,14 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
             .filter(|variant| {
                 !variant.attrs.iter().any(|attr| {
                     let mut is_skip = false;
-                    attr.parse_nested_meta(|meta| {
-                        is_skip = meta.path.is_ident("skip");
-                        Ok(())
-                    })
-                    .unwrap();
-                    attr.path().is_ident(ATTR_NAMESPACE) && is_skip
+                    if attr.path().is_ident(ATTR_NAMESPACE) { // only parse ATTR_NAMESPACE and not [serde] or [default]
+                        attr.parse_nested_meta(|meta| {
+                            is_skip = meta.path.is_ident("skip");
+                            Ok(())
+                        })
+                        .unwrap();
+                    }
+                    is_skip
                 })
             })
                 .map(|variant| {
@@ -177,12 +181,14 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
                 .filter(|variant| {
                     variant.attrs.iter().any(|attr| {
                         let mut is_skip = false;
-                        attr.parse_nested_meta(|meta| {
-                            is_skip = meta.path.is_ident("skip");
-                            Ok(())
-                        })
-                        .unwrap();
-                        attr.path().is_ident(ATTR_NAMESPACE) && is_skip
+                        if attr.path().is_ident(ATTR_NAMESPACE) { // only parse ATTR_NAMESPACE and not [serde] or [default]
+                            attr.parse_nested_meta(|meta| {
+                                is_skip = meta.path.is_ident("skip");
+                                Ok(())
+                            })
+                            .unwrap();
+                        };
+                        is_skip
                     })
                 })
                 .map(|variant| {
@@ -401,15 +407,18 @@ pub fn getattr_derive(input: TokenStream) -> TokenStream {
                         .filter(|f| matches!(f.vis, Visibility::Public(_)))
                         .filter(|f| {
                             !f.attrs.iter().any(|attr| {
-                                let mut is_skip = false;
-                                attr.parse_nested_meta(|meta| {
-                                    is_skip = meta.path.is_ident("skip");
-                                    Ok(())
+                                
+                                    let mut is_skip = false;
+                                    if attr.path().is_ident(ATTR_NAMESPACE) { // only parse ATTR_NAMESPACE and not [serde] or [default]
+                                        attr.parse_nested_meta(|meta| {
+                                            is_skip = meta.path.is_ident("skip");
+                                            Ok(())
+                                        })
+                                        .unwrap();
+                                    };
+                                    is_skip
                                 })
-                                .unwrap();
-                                attr.path().is_ident(ATTR_NAMESPACE) && is_skip
                             })
-                        })
                         .map(|f| f.ident.as_ref().unwrap())
                         .collect::<Vec<_>>();
                     let field_names_str = field_names
@@ -480,12 +489,14 @@ pub fn getattr_derive(input: TokenStream) -> TokenStream {
             .filter(|variant| {
                 !variant.attrs.iter().any(|attr| {
                     let mut is_skip = false;
-                    attr.parse_nested_meta(|meta| {
-                        is_skip = meta.path.is_ident("skip");
-                        Ok(())
-                    })
-                    .unwrap();
-                    attr.path().is_ident(ATTR_NAMESPACE) && is_skip
+                    if attr.path().is_ident(ATTR_NAMESPACE) { // only parse ATTR_NAMESPACE and not [serde] or [default]
+                        attr.parse_nested_meta(|meta| {
+                            is_skip = meta.path.is_ident("skip");
+                            Ok(())
+                        })
+                        .unwrap();
+                    };
+                    is_skip
                 })
             })
                 .map(|variant| {
@@ -530,12 +541,14 @@ pub fn getattr_derive(input: TokenStream) -> TokenStream {
             .filter(|variant| {
                 variant.attrs.iter().any(|attr| {
                     let mut is_skip = false;
-                    attr.parse_nested_meta(|meta| {
-                        is_skip = meta.path.is_ident("skip");
-                        Ok(())
-                    })
-                    .unwrap();
-                    attr.path().is_ident(ATTR_NAMESPACE) && is_skip
+                    if attr.path().is_ident(ATTR_NAMESPACE) { // only parse ATTR_NAMESPACE and not [serde] or [default]
+                        attr.parse_nested_meta(|meta| {
+                            is_skip = meta.path.is_ident("skip");
+                            Ok(())
+                        })
+                        .unwrap();
+                    };
+                    is_skip
                 })
             })
                 .map(|variant| {
@@ -619,12 +632,14 @@ pub fn dict_derive(input: TokenStream) -> TokenStream {
                         .filter(|f| {
                             !f.attrs.iter().any(|attr| {
                                 let mut is_skip = false;
-                                attr.parse_nested_meta(|meta| {
-                                    is_skip = meta.path.is_ident("skip");
-                                    Ok(())
-                                })
-                                .unwrap();
-                                attr.path().is_ident(ATTR_NAMESPACE) && is_skip
+                                if attr.path().is_ident(ATTR_NAMESPACE) { // only parse ATTR_NAMESPACE and not [serde] or [default]
+                                    attr.parse_nested_meta(|meta| {
+                                        is_skip = meta.path.is_ident("skip");
+                                        Ok(())
+                                    })
+                                    .unwrap();
+                                };
+                                is_skip
                             })
                         })
                         .filter(|f| matches!(f.vis, Visibility::Public(_)))
@@ -697,12 +712,14 @@ pub fn dict_derive(input: TokenStream) -> TokenStream {
             .filter(|variant| {
                 !variant.attrs.iter().any(|attr| {
                     let mut is_skip = false;
-                    attr.parse_nested_meta(|meta| {
-                        is_skip = meta.path.is_ident("skip");
-                        Ok(())
-                    })
-                    .unwrap();
-                    attr.path().is_ident(ATTR_NAMESPACE) && is_skip
+                    if attr.path().is_ident(ATTR_NAMESPACE) { // only parse ATTR_NAMESPACE and not [serde] or [default]
+                        attr.parse_nested_meta(|meta| {
+                            is_skip = meta.path.is_ident("skip");
+                            Ok(())
+                        })
+                        .unwrap();
+                    };
+                    is_skip
                 })
             })
                 .map(|variant| {
@@ -741,12 +758,14 @@ pub fn dict_derive(input: TokenStream) -> TokenStream {
                 .filter(|variant| {
                     variant.attrs.iter().any(|attr| {
                         let mut is_skip = false;
-                        attr.parse_nested_meta(|meta| {
-                            is_skip = meta.path.is_ident("skip");
-                            Ok(())
-                        })
-                        .unwrap();
-                        attr.path().is_ident(ATTR_NAMESPACE) && is_skip
+                        if attr.path().is_ident(ATTR_NAMESPACE) { // only parse ATTR_NAMESPACE and not [serde] or [default]
+                            attr.parse_nested_meta(|meta| {
+                                is_skip = meta.path.is_ident("skip");
+                                Ok(())
+                            })
+                            .unwrap();
+                        };
+                        is_skip
                     })
                 })
                 .map(|variant| {
