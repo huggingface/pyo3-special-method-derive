@@ -9,7 +9,7 @@ use std::{
     collections::{BTreeMap, BTreeSet, HashMap, HashSet},
     sync::{
         atomic::{AtomicUsize, Ordering},
-        Mutex, RwLock,
+        Mutex, RwLock, Arc,
     },
 };
 
@@ -163,6 +163,42 @@ impl<T: PyDebug> PyDebug for Mutex<T> {
 }
 
 impl<T: PyDisplay> PyDisplay for Mutex<T> {
+    fn fmt_display(&self) -> String {
+        match self.lock() {
+            Ok(x) => x.fmt_display(),
+            Err(_) => "None".to_string(),
+        }
+    }
+}
+
+impl<T: PyDebug> PyDebug for Arc<RwLock<T>> {
+    fn fmt_debug(&self) -> String {
+        match self.read() {
+            Ok(x) => x.fmt_debug(),
+            Err(_) => "None".to_string(),
+        }
+    }
+}
+
+impl<T: PyDisplay> PyDisplay for Arc<RwLock<T>> {
+    fn fmt_display(&self) -> String {
+        match self.read() {
+            Ok(x) => x.fmt_display(),
+            Err(_) => "None".to_string(),
+        }
+    }
+}
+
+impl<T: PyDebug> PyDebug for Arc<Mutex<T>> {
+    fn fmt_debug(&self) -> String {
+        match self.lock() {
+            Ok(x) => x.fmt_debug(),
+            Err(_) => "None".to_string(),
+        }
+    }
+}
+
+impl<T: PyDisplay> PyDisplay for Arc<Mutex<T>> {
     fn fmt_display(&self) -> String {
         match self.lock() {
             Ok(x) => x.fmt_display(),
