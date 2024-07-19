@@ -277,7 +277,7 @@ fn generate_fmt_impl_for_enum(
             }
             Fields::Named(fields) => {
                 let field_names: Vec<_> = fields.named.iter().map(|f| &f.ident).collect();
-                let mut format_string = "{}.{}(".to_string();
+                let mut format_string = "{}(".to_string();
                 let formatter = if is_repr { quote! { fmt_debug } } else { quote! { fmt_display } };
                 for (i, name) in field_names.iter().enumerate() {
                     if i == 0 {
@@ -293,7 +293,7 @@ fn generate_fmt_impl_for_enum(
                         names.push(quote! { #name.#formatter() });
                     }
                     quote! {
-                        Self::#ident { #(#field_names),* } => repr += &format!(#format_string, stringify!(#name), stringify!(#ident), #(#names),*),
+                        Self::#ident { #(#field_names),* } => repr += &format!(#format_string, stringify!(#ident), #(#names),*),
                     }
                 } else {
                     quote! {
