@@ -12,7 +12,7 @@ os.environ["RUST_BACKTRACE"] = "1"
 london = PyCity("London")
 nyc = PyCity("New york")
 # Create a person living in London
-
+print(london)
 person = Person(
     name="John Doe",
     age=30,

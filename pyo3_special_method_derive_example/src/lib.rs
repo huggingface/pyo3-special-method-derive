@@ -28,10 +28,11 @@ impl FromStr for CityName {
     }
 }
 
-#[derive(Default, AutoDebug, AutoDisplay)]
+#[derive(Default, AutoDisplay, Debug)]
 #[auto_display(fmt = "{}")]
 pub struct City {
-    name: CityName,
+    
+    pub name: CityName,
     pub addresses: HashMap<String, Arc<RwLock<PyAddress>>>,
 }
 
@@ -55,27 +56,8 @@ impl City {
         self.addresses.remove(address_key);
     }
 }
-
-#[derive(Default, AutoDebug, AutoDisplay)]
-pub struct Country {
-    capital: Option<CityName>,
-    pub regions: Vec<CityName>,
-    pub(crate) hash: Option<u128>,
-    inhabitants: HashMap<CityName, u32>, // it's private but I still want to be able to display it!
-}
-
-#[derive(AutoDisplay, AutoDebug)]
-pub struct Region;
-
-#[derive(AutoDisplay, AutoDebug)]
-pub enum MyObjectWrapper {
-    Country(Country),
-    City(CityName),
-    CountryRegion(Region),
-}
-
 #[pyclass]
-#[derive(Repr, Str, Clone)]
+#[derive(Repr, Str, Clone, Debug)]
 pub struct PyCity {
     pub city: Arc<RwLock<City>>, // TODO currently this printed as PyCity(city=RwLock { data: City(name=CityName(City.London), addresses={}), poisoned: false, .. })
 }
@@ -100,7 +82,7 @@ impl PyCity {
 
 // Name enum, will show PyAddress.House(country=..., city=...,) etc
 #[pyclass]
-#[derive(Dir, Dict, Str, Repr, Getattr, Clone)]
+#[derive(Dir, Dict, Str, Repr, Getattr, Clone, Debug)]
 pub enum PyAddress {
     House {
         country: String,
