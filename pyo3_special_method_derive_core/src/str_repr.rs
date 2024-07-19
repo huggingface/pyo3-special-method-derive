@@ -96,7 +96,7 @@ fn generate_fmt_impl_for_struct(
                     to_skip = false;
                     break;
                 }
-                }
+            }
             !to_skip
         })
         .collect::<Vec<_>>();
@@ -221,15 +221,16 @@ fn generate_fmt_impl_for_enum(
             for attr in &variant.attrs {
                 let path = attr.path();
                 if path.is_ident(ATTR_NAMESPACE) || path.is_ident(ATTR_NAMESPACE_AUTO_DISPLAY) || path.is_ident(namespace) {
-                    attr.parse_nested_meta(|meta| {
+                    let _ = attr.parse_nested_meta(|meta| {
                         if meta.path.is_ident("skip") {
                             to_skip = true;
                         }
                         Ok(())
-                    }).unwrap();
+                    });
+            
                     if path.is_ident(ATTR_NAMESPACE_AUTO_DISPLAY) {
                         display_attr = Some(attr);
-                    } 
+                    }
                 }
             }
 
