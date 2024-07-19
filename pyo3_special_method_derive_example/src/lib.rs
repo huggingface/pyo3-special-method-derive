@@ -1,12 +1,14 @@
-use pyo3::{pyclass, pymethods, pymodule, types::PyModule, PyResult, Python, PyErr};
-use pyo3_special_method_derive::{AutoDebug, AutoDisplay, Dict, Dir, Getattr, Repr, Str};
+use env_logger;
+use log::{error, info};
+use pyo3::{pyclass, pymethods, pymodule, types::PyModule, PyErr, PyResult, Python};
+use pyo3_special_method_derive::{
+    AutoDebug, AutoDebugDerive, AutoDisplay, AutoDisplayDerive, Dict, Dir, Getattr, Repr, Str,
+};
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
-use log::{info, error};
-use env_logger;
 
-#[derive(Clone, AutoDisplay, AutoDebug, PartialEq, Eq, Hash, Default)]
+#[derive(Clone, AutoDisplayDerive, AutoDebugDerive, PartialEq, Eq, Hash, Default)]
 #[auto_display(fmt = "")] // We don't want CityName(Paris), but directly Paris
 pub enum CityName {
     Paris,
@@ -180,10 +182,10 @@ impl Person {
         self.address = new_address_arc;
     }
 
-    pub fn get_age(&self) -> String{
+    pub fn get_age(&self) -> String {
         format!("{}", self.age)
     }
-    pub fn get_address(&self) -> String{
+    pub fn get_address(&self) -> String {
         self.address.read().unwrap().get_full_address()
     }
 }
@@ -221,7 +223,7 @@ impl PyAddress {
                     city_lock.name, // Accessing the name field of PyCity
                     street,
                     street_number
-               )
+                )
             }
         }
     }
