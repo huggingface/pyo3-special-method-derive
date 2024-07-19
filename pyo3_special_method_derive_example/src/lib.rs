@@ -1,14 +1,16 @@
 use pyo3::{pyclass, pymethods, pymodule, types::PyModule, PyResult, Python};
 use pyo3_special_method_derive::{AutoDebug, AutoDisplay, Dict, Dir, Getattr, Repr, Str};
 use std::collections::HashMap;
-use std::sync::{Arc, RwLock};
 use std::str::FromStr;
+use std::sync::{Arc, RwLock};
 
 #[derive(Clone, AutoDisplay, AutoDebug, PartialEq, Eq, Hash, Default)]
+#[auto_display(fmt = "City.{}")]
 pub enum CityName {
     Paris,
     #[default]
     London,
+    #[auto_display(fmt = "CityName:{}")]
     NewYork,
 }
 
@@ -110,6 +112,7 @@ pub enum PyAddress {
 pub struct Person {
     pub name: String,
     pub age: u8,
+    #[pyo3_no_skip]
     address: Arc<RwLock<PyAddress>>,
 }
 
@@ -166,7 +169,7 @@ impl Person {
         let new_address_arc = Arc::new(RwLock::new(new_address));
         {
             let mut city = new_city.city.write().unwrap();
-            city.occupy_address(new_address_key, new_address_arc.clone());
+            city.occupy_address(new_address_key, Arc::clone(&new_address_arc));
         }
         self.address = new_address_arc;
     }
@@ -186,14 +189,29 @@ impl PyAddress {
 
     fn get_address_key(&self) -> String {
         match self {
-            PyAddress::House { street, street_number, .. } => format!("{}-{}", street, street_number),
+            PyAddress::House {
+                street,
+                street_number,
+                ..
+            } => format!("{}-{}", street, street_number),
         }
     }
 
     fn get_full_address(&self) -> String {
         match self {
-            PyAddress::House { country, city, street, street_number } => {
-                format!("{}, {}, {}-{}", country, city.city.read().unwrap().name, street, street_number)
+            PyAddress::House {
+                country,
+                city,
+                street,
+                street_number,
+            } => {
+                format!(
+                    "{}, {}, {}-{}",
+                    country,
+                    city.city.read().unwrap().name,
+                    street,
+                    street_number
+                )
             }
         }
     }

@@ -29,8 +29,8 @@ mod str_repr;
 const ATTR_NAMESPACE: &str = "pyo3_smd";
 const ATTR_NAMESPACE_STR: &str = "pyo3_smd_str";
 const ATTR_NAMESPACE_REPR: &str = "pyo3_smd_repr";
-const ATTR_NAMESPACE_DISPLAY: &str = "auto_display";
-
+const ATTR_NAMESPACE_NO_SKIP: &str = "pyo3_no_skip";
+const ATTR_NAMESPACE_AUTO_DISPLAY: &str = "auto_display";
 /// Add a `__dir__` method to a struct or enum.
 ///
 /// - Skip exposure of certain fields by adding the `#[pyo3_smd(skip)]` attribute macro
@@ -68,7 +68,8 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
                         .filter(|f| {
                             !f.attrs.iter().any(|attr| {
                                 let mut is_skip = false;
-                                if attr.path().is_ident(ATTR_NAMESPACE) { // only parse ATTR_NAMESPACE and not [serde] or [default]
+                                if attr.path().is_ident(ATTR_NAMESPACE) {
+                                    // only parse ATTR_NAMESPACE and not [serde] or [default]
                                     attr.parse_nested_meta(|meta| {
                                         is_skip = meta.path.is_ident("skip");
                                         Ok(())
@@ -181,7 +182,8 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
                 .filter(|variant| {
                     variant.attrs.iter().any(|attr| {
                         let mut is_skip = false;
-                        if attr.path().is_ident(ATTR_NAMESPACE) { // only parse ATTR_NAMESPACE and not [serde] or [default]
+                        if attr.path().is_ident(ATTR_NAMESPACE) {
+                            // only parse ATTR_NAMESPACE and not [serde] or [default]
                             attr.parse_nested_meta(|meta| {
                                 is_skip = meta.path.is_ident("skip");
                                 Ok(())
@@ -253,7 +255,7 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(Str, attributes(pyo3_smd, pyo3_smd_str))]
+#[proc_macro_derive(Str, attributes(pyo3_smd, pyo3_smd_str, pyo3_no_skip))]
 pub fn str_derive(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
 
@@ -296,10 +298,10 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 ///     hash: u32,
 /// }
 /// ```
-#[proc_macro_derive(AutoDisplay, attributes(pyo3_smd, pyo3_smd_str))]
+#[proc_macro_derive(AutoDisplay, attributes(pyo3_smd, pyo3_smd_str, auto_display))]
 pub fn auto_display(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
-
+    // let attr = find_display_attribute(&parsed_input.attrs);
     let display_debug_derive_body = impl_formatter(&input, DeriveType::ForAutoDisplay);
     TokenStream::from(display_debug_derive_body)
 }
@@ -407,18 +409,18 @@ pub fn getattr_derive(input: TokenStream) -> TokenStream {
                         .filter(|f| matches!(f.vis, Visibility::Public(_)))
                         .filter(|f| {
                             !f.attrs.iter().any(|attr| {
-                                
-                                    let mut is_skip = false;
-                                    if attr.path().is_ident(ATTR_NAMESPACE) { // only parse ATTR_NAMESPACE and not [serde] or [default]
-                                        attr.parse_nested_meta(|meta| {
-                                            is_skip = meta.path.is_ident("skip");
-                                            Ok(())
-                                        })
-                                        .unwrap();
-                                    };
-                                    is_skip
-                                })
+                                let mut is_skip = false;
+                                if attr.path().is_ident(ATTR_NAMESPACE) {
+                                    // only parse ATTR_NAMESPACE and not [serde] or [default]
+                                    attr.parse_nested_meta(|meta| {
+                                        is_skip = meta.path.is_ident("skip");
+                                        Ok(())
+                                    })
+                                    .unwrap();
+                                };
+                                is_skip
                             })
+                        })
                         .map(|f| f.ident.as_ref().unwrap())
                         .collect::<Vec<_>>();
                     let field_names_str = field_names
@@ -632,7 +634,8 @@ pub fn dict_derive(input: TokenStream) -> TokenStream {
                         .filter(|f| {
                             !f.attrs.iter().any(|attr| {
                                 let mut is_skip = false;
-                                if attr.path().is_ident(ATTR_NAMESPACE) { // only parse ATTR_NAMESPACE and not [serde] or [default]
+                                if attr.path().is_ident(ATTR_NAMESPACE) {
+                                    // only parse ATTR_NAMESPACE and not [serde] or [default]
                                     attr.parse_nested_meta(|meta| {
                                         is_skip = meta.path.is_ident("skip");
                                         Ok(())
@@ -758,7 +761,8 @@ pub fn dict_derive(input: TokenStream) -> TokenStream {
                 .filter(|variant| {
                     variant.attrs.iter().any(|attr| {
                         let mut is_skip = false;
-                        if attr.path().is_ident(ATTR_NAMESPACE) { // only parse ATTR_NAMESPACE and not [serde] or [default]
+                        if attr.path().is_ident(ATTR_NAMESPACE) {
+                            // only parse ATTR_NAMESPACE and not [serde] or [default]
                             attr.parse_nested_meta(|meta| {
                                 is_skip = meta.path.is_ident("skip");
                                 Ok(())
