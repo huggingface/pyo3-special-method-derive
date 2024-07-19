@@ -54,6 +54,7 @@ pydebug_pydisplay!(u16);
 pydebug_pydisplay!(u32);
 pydebug_pydisplay!(u64);
 pydebug_pydisplay!(u128);
+pydebug_pydisplay!(usize);
 
 pydebug_pydisplay!(i8);
 pydebug_pydisplay!(i16);
@@ -68,6 +69,7 @@ pydebug_pydisplay!(bool);
 
 pydebug_pydisplay!(String);
 pydebug_pydisplay!(&str);
+pydebug_pydisplay!(char);
 
 fn do_format(start: char, end: char, iter: impl Iterator<Item = String>) -> String {
     let n = ELLIPSIS_CHAR_N.load(Ordering::Relaxed);
