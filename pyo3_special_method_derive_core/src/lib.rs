@@ -22,7 +22,7 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::quote;
 use str_repr::{impl_formatter, DeriveType};
-use syn::{parse_macro_input, Data, DeriveInput, Fields, Visibility};
+use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Visibility};
 
 mod str_repr;
 
@@ -31,6 +31,35 @@ const ATTR_NAMESPACE_STR: &str = "pyo3_smd_str";
 const ATTR_NAMESPACE_REPR: &str = "pyo3_smd_repr";
 const ATTR_NAMESPACE_NO_FMT_SKIP: &str = "pyo3_fmt_no_skip";
 const ATTR_NAMESPACE_AUTO_DISPLAY: &str = "auto_display";
+
+fn implements_debug(ty: &Ident) -> bool {
+    let expanded = quote! {
+        fn _check_impl<T: std::fmt::Debug>() {}
+        _check_impl::<#ty>();
+    };
+    let generated_code = expanded.to_string();
+
+    let syntax_tree = syn::parse_file(&generated_code);
+    match syntax_tree {
+        Ok(_) => true,
+        Err(_) => false,
+    }
+}
+
+fn implements_display(ty: &Ident) -> bool {
+    let expanded = quote! {
+        fn _check_impl<T: std::fmt::Display>() {}
+        _check_impl::<#ty>();
+    };
+    let generated_code = expanded.to_string();
+
+    let syntax_tree = syn::parse_file(&generated_code);
+    match syntax_tree {
+        Ok(_) => true,
+        Err(_) => false,
+    }
+}
+
 /// Add a `__dir__` method to a struct or enum.
 ///
 /// - Skip exposure of certain fields by adding the `#[pyo3_smd(skip)]` attribute macro
@@ -282,7 +311,7 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
     res
 }
 
-/// Implement `PyDisplay` on a struct or enum.
+/// Implement `PyDisplay` on a struct or enum. Implements `Display` based on `PyDisplay` if the type does not.
 ///
 /// This has the same requirements and behavior of [`Str`].
 ///
@@ -302,9 +331,27 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 #[proc_macro_derive(AutoDisplay, attributes(pyo3_smd, pyo3_smd_str, auto_display))]
 pub fn auto_display(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
+    let name = &input.ident;
+
     // let attr = find_display_attribute(&parsed_input.attrs);
     let display_debug_derive_body = impl_formatter(&input, DeriveType::ForAutoDisplay);
-    TokenStream::from(display_debug_derive_body)
+
+    if implements_display(&name) {
+        TokenStream::from(display_debug_derive_body)
+    } else {
+        let expanded = quote! {
+            #display_debug_derive_body
+
+            impl std::fmt::Display for #name {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    use pyo3_special_method_derive_lib::PyDisplay;
+                    write!(f, "{}", self.fmt_display())
+                }
+            }
+        };
+
+        TokenStream::from(expanded)
+    }
 }
 
 /// Implement `PyDisplay` and `Display` on a struct or enum.
@@ -392,7 +439,7 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
     TokenStream::from(expanded)
 }
 
-/// Implement `PyDebug` on a struct or enum.
+/// Implement `PyDebug` on a struct or enum. Implements `Debug` based on `PyDebug` if the type does not.
 ///
 /// This has the same requirements and behavior of [`Repr`].
 ///
@@ -410,45 +457,27 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
 #[proc_macro_derive(AutoDebug, attributes(pyo3_smd, pyo3_smd_str))]
 pub fn auto_debug(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
-
-    let display_debug_derive_body = impl_formatter(&input, DeriveType::ForAutoDebug);
-    TokenStream::from(display_debug_derive_body)
-}
-
-/// Implement `PyDebug` and `Debug` on a struct or enum.
-///
-/// This has the same requirements and behavior of [`Repr`].
-///
-/// ## Example
-/// ```
-/// use pyo3_special_method_derive::AutoDebugDerive;
-/// #[derive(AutoDebugDerive)]
-/// struct Person {
-///     pub name: String,
-///     address: String,
-///     #[pyo3_smd(skip)]
-///     pub phone_number: String,
-/// }
-/// ```
-#[proc_macro_derive(AutoDebugDerive, attributes(pyo3_smd, pyo3_smd_str))]
-pub fn auto_debug_derive(input_stream: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input_stream as DeriveInput);
     let name = &input.ident;
 
     let display_debug_derive_body = impl_formatter(&input, DeriveType::ForAutoDebug);
 
-    let expanded = quote! {
-        #display_debug_derive_body
+    if implements_debug(&name) {
+        TokenStream::from(display_debug_derive_body)
+    } else {
+        let name = &input.ident;
+        let expanded = quote! {
+            #display_debug_derive_body
 
-        impl std::fmt::Debug for #name {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                use pyo3_special_method_derive_lib::PyDebug;
-                write!(f, "{}", self.fmt_debug())
+            impl std::fmt::Debug for #name {
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                    use pyo3_special_method_derive_lib::PyDebug;
+                    write!(f, "{}", self.fmt_debug())
+                }
             }
-        }
-    };
+        };
 
-    TokenStream::from(expanded)
+        TokenStream::from(expanded)
+    }
 }
 
 /// Add a `__getattr__` method to a struct or enum.
