@@ -9,7 +9,7 @@ use std::{
     collections::{BTreeMap, BTreeSet, HashMap, HashSet},
     sync::{
         atomic::{AtomicUsize, Ordering},
-        Mutex, RwLock, Arc,
+        Arc, Mutex, RwLock,
     },
 };
 
