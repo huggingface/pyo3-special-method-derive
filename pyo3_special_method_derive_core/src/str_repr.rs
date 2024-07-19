@@ -74,35 +74,33 @@ fn generate_fmt_impl_for_struct(
         .iter()
         .filter(|f| {
             // Default `is_skip` based on the field's visibility
-            let mut is_skip = !matches!(f.vis, Visibility::Public(_));
+            let mut to_skip = !matches!(f.vis, Visibility::Public(_));
+            let namespace = if is_repr {
+                ATTR_NAMESPACE_REPR
+            } else {
+                ATTR_NAMESPACE_STR
+            };
 
             for attr in &f.attrs {
-                let namespace = if is_repr {
-                    ATTR_NAMESPACE_REPR
-                } else {
-                    ATTR_NAMESPACE_STR
-                };
-                let attr_path = attr.path();
-
-                if attr.path().is_ident(ATTR_NAMESPACE) || attr_path.is_ident(namespace) {
-                    // Parse attributes in the specified namespace
-                    let res = attr.parse_nested_meta(|meta| {
+                let path = attr.path();
+                if path.is_ident(ATTR_NAMESPACE)
+                    || path.is_ident(ATTR_NAMESPACE_AUTO_DISPLAY)
+                    || path.is_ident(namespace)
+                {
+                    let _ = attr.parse_nested_meta(|meta| {
                         if meta.path.is_ident("skip") {
-                            is_skip = true;
+                            to_skip = true;
                         }
                         Ok(())
                     });
-                    if res.is_err() {
-                        // Handle parse error if needed
-                        panic!("Failed to parse attribute {:?}", attr_path);
-                    }
-                } else if attr_path.is_ident(ATTR_NAMESPACE_NO_FMT_SKIP) {
+                    break;
+                } else if path.is_ident(ATTR_NAMESPACE_NO_FMT_SKIP) {
                     // Explicitly mark to not skip the field
-                    is_skip = false;
+                    to_skip = false;
                     break;
                 }
             }
-            !is_skip
+            !to_skip
         })
         .collect::<Vec<_>>();
     let field_fmts = fields
@@ -224,16 +222,17 @@ fn generate_fmt_impl_for_enum(
             };
 
             for attr in &variant.attrs {
-                if attr.path().is_ident(ATTR_NAMESPACE) || attr.path().is_ident(namespace) {
-                    attr.parse_nested_meta(|meta| {
+                let path = attr.path();
+                if path.is_ident(ATTR_NAMESPACE) || path.is_ident(ATTR_NAMESPACE_AUTO_DISPLAY) || path.is_ident(namespace) {
+                    let _ = attr.parse_nested_meta(|meta| {
                         if meta.path.is_ident("skip") {
                             to_skip = true;
                         }
                         Ok(())
-                    }).unwrap();
-                }
-                if attr.path().is_ident(ATTR_NAMESPACE_AUTO_DISPLAY) {
-                    display_attr = Some(attr);
+                    });
+                    if path.is_ident(ATTR_NAMESPACE_AUTO_DISPLAY) {
+                        display_attr = Some(attr);
+                    }
                 }
             }
 
