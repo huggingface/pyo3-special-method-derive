@@ -7,7 +7,7 @@ use proc_macro2::TokenStream;
 macro_rules! create_body {
     ($input:expr, $ident:expr, $is_repr:expr) => {
         match &$input.data {
-            syn::Data::Struct(s) => generate_fmt_impl_for_struct(s, $is_repr),
+            syn::Data::Struct(s) => generate_fmt_impl_for_struct(s, $ident, $is_repr),
             syn::Data::Enum(e) => generate_fmt_impl_for_enum(e, $ident, $is_repr, Some(&$input.attrs)),
             syn::Data::Union(u) => {
                 let error = syn::Error::new_spanned(u.union_token, "Unions are not supported");
@@ -33,32 +33,19 @@ pub(crate) fn impl_formatter(input: &DeriveInput, ty: DeriveType) -> proc_macro2
     let body_display = create_body!(input, ident, !is_repr);
     let body_debug = create_body!(input, ident, is_repr);
 
-    let debug = quote! {
-        let mut repr = "".to_string();
-        repr += &format!("{}(", stringify!(#ident));
-        #body_debug
-        repr += ")";
-    };
-
-    let fmt = quote! {
-        let mut repr = "".to_string();
-        repr += &format!("{}(", stringify!(#ident));
-        #body_display
-        repr += ")";
-    };
 
     // Determine which traits to implement
     let (ty_trait, ty_fn) = match ty {
         DeriveType::ForAutoDisplay => (
             quote! { impl std::fmt::Display },
             quote! {
-                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {#fmt; write!(f, "{}", repr)}
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {#body_display; write!(f, "{}", repr)}
             },
         ),
         DeriveType::ForAutoDebug => (
             quote! { impl std::fmt::Debug },
             quote! {
-                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {#debug; write!(f, "{}", repr)}
+                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {#body_debug; write!(f, "{}", repr)}
             },
         ),
     };
@@ -78,6 +65,7 @@ pub(crate) fn impl_formatter(input: &DeriveInput, ty: DeriveType) -> proc_macro2
 
 fn generate_fmt_impl_for_struct(
     data_struct: &syn::DataStruct,
+    name: &Ident,
     is_repr: bool,
 ) -> proc_macro2::TokenStream {
     let fields = &data_struct.fields;
@@ -128,8 +116,12 @@ fn generate_fmt_impl_for_struct(
             }
         })
         .collect::<Vec<_>>();
-    // Collect the mapped tokens into a TokenStream
-    quote! {#(#field_fmts)*}
+    quote! {
+        let mut repr = "".to_string();
+        repr += &format!("{}(", stringify!(#name));
+        #(#field_fmts)*
+        repr += ")";
+    }
 }
 
 
@@ -187,7 +179,7 @@ fn generate_fmt_impl_for_enum(
     string_formater: Option<&Vec<Attribute>>,
 ) -> proc_macro2::TokenStream {
     let variants = data_enum.variants.iter().collect::<Vec<_>>();
-    let mut ident_formatter =  quote! { "{}"} ;
+    let mut ident_formatter =  quote! { "{}."} ;
     if let Some(attrs) = string_formater {
         for attr in attrs {
             if attr.path().is_ident("auto_display") {
@@ -206,11 +198,11 @@ fn generate_fmt_impl_for_enum(
     // Check if the formatter string contains "{}"
     let ident_formatter = if fmt_str.contains("{}") {
         quote! {
-            &format!(#ident_formatter, single)
+            &format!(#ident_formatter, stringify!(#name))
         }
     } else {
         quote! {
-            &format!(#ident_formatter)
+            &format!("{}", #ident_formatter)
         }
     };
 
@@ -264,7 +256,7 @@ fn generate_fmt_impl_for_enum(
                     }
                 } else {
                     quote! {
-                        &format!(#variant_fmt)
+                        &format!("\"{}\"", #variant_fmt)
                     }
                 };
                 if !to_skip {
@@ -326,6 +318,8 @@ fn generate_fmt_impl_for_enum(
     }).collect::<Vec<_>>();
 
     quote! {
+        let mut repr = "".to_string();
+        repr += #ident_formatter;
         match self {
             #(#arms)*
         }
