@@ -1,5 +1,5 @@
 [package]
-name = "pyo3_special_method_derive_lib"
+name = "pyo3_special_method_derive"
 version.workspace = true
 edition.workspace = true
 description.workspace = true
@@ -7,3 +7,5 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
+pyo3_special_method_derive_macro = {path = "../pyo3_special_method_derive_macro"}
+pyo3.workspace = true

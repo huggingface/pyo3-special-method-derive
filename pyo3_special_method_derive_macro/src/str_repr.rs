@@ -41,9 +41,9 @@ pub(crate) fn impl_formatter(input: &DeriveInput, ty: DeriveType) -> proc_macro2
     match ty {
         DeriveType::ForAutoDisplay => {
             quote! {
-                impl pyo3_special_method_derive_lib::PyDisplay for #ident {
+                impl pyo3_special_method_derive::PyDisplay for #ident {
                     fn fmt_display(&self) -> String {
-                        use pyo3_special_method_derive_lib::PyDisplay;
+                        use pyo3_special_method_derive::PyDisplay;
                         #body_display
                         repr
                     }
@@ -52,9 +52,9 @@ pub(crate) fn impl_formatter(input: &DeriveInput, ty: DeriveType) -> proc_macro2
         }
         DeriveType::ForAutoDebug => {
             quote! {
-                impl pyo3_special_method_derive_lib::PyDebug for #ident {
+                impl pyo3_special_method_derive::PyDebug for #ident {
                     fn fmt_debug(&self) -> String {
-                        use pyo3_special_method_derive_lib::PyDebug;
+                        use pyo3_special_method_derive::PyDebug;
                         #body_debug
                         repr
                     }

@@ -1,7 +1,8 @@
 use pyo3::pyclass;
 use pyo3_special_method_derive::{Repr, Str};
 
-#[pyclass]
+#[derive(PartialEq)]
+#[pyclass(eq, eq_int)]
 #[derive(Str, Repr)]
 #[allow(dead_code)]
 enum Tester {

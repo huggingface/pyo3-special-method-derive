@@ -1,8 +1,8 @@
 [workspace]
 members = [
-    "pyo3_special_method_derive_core",
+    "pyo3_special_method_derive_macro",
     "pyo3_special_method_derive_example",
-    "pyo3_special_method_derive_lib"
+    "pyo3_special_method_derive"
 ]
 resolver = "2"
 
@@ -14,3 +14,4 @@ license = "MIT"
 repository = "https://github.com/EricLBuehler/pyo3-special-method-derive"
 
 [workspace.dependencies]
+pyo3 = { version = "0.22", features = ["multiple-pymethods"] }

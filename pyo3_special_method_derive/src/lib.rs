@@ -1,8 +1,29 @@
-//! This crate exports 2 traits which should be implemented for
-//! every type for which its field or variant is not skipped.
+//! Derive macros to make Rust objects more friendly 🤗.
 //!
-//! It also exports a macro to use the Debug and Display traits to generate a PyDebug and PyDisplay
+//! Please see [these docs](https://docs.rs/pyo3_special_method_derive/0.3.1/pyo3_special_method_derive/) for the PyDisplay and PyDebug
+//! traits which power `Str` and `Repr`.
+//!
+//! This crate automatically derives the following functions for structs and enums:
+//! - `__str__`
+//! - `__repr__`
+//! - `__dir__`
+//! - `__getattr__`
+//! - `__dict__`
+//!
+//! - Skip exposure of variants or fields with the `#[pyo3_smd(skip)]` attribute
+//! - Skip variants or fields for `__str__` or `__repr__` differently with the `#[pyo3_smd_str(skip)]` and `#[pyo3_smd_repr(skip)]` attributes
+//! - Struct fields which are not `pub` are skipped automatically
+//!
+//! When you have custom Rust structs which need to implement `PyDisplay` and `PyDebug`, you should use the `AutoDisplay` and `AutoDebug` traits.
+//! This will have the same output as `Str` and `Repr` respectively.
+//!
+//! This crate exports 2 traits (`PyDisplay`` and `PyDebug`) which should be implemented for every type for which its field or variant is not skipped.
+//!
+//! It also exports a macro to use the Debug and Display traits to generate a `PyDebug` and `PyDisplay`
 //! implementation.
+//!
+//! In addition, the `AutoDisplay` and `AutoDebug` macros enable usage of arbitrary Rust, non-pyclass structs.
+//!
 
 use std::{
     cell::Cell,
@@ -12,6 +33,8 @@ use std::{
         Arc, Mutex, RwLock,
     },
 };
+
+pub use pyo3_special_method_derive_macro::*;
 
 /// Number of *characters* to display for each implementation in this crate,
 /// defaults to 100. May be a few chars above or below.

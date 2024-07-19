@@ -1,5 +1,9 @@
 use log::info;
-use pyo3::{pyclass, pymethods, pymodule, types::PyModule, Bound, PyResult, Python};
+use pyo3::{
+    pyclass, pymethods, pymodule,
+    types::{PyModule, PyModuleMethods},
+    Bound, PyResult, Python,
+};
 use pyo3_special_method_derive::{AutoDebug, AutoDisplay, Dict, Dir, Getattr, Repr, Str};
 use std::collections::HashMap;
 use std::str::FromStr;

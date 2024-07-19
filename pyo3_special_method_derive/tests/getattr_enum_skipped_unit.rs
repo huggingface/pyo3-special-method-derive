@@ -1,10 +1,12 @@
 use pyo3::{pyclass, Python};
 use pyo3_special_method_derive::Getattr;
 
-#[pyclass]
+#[derive(PartialEq)]
+#[pyclass(eq, eq_int)]
 #[derive(Getattr)]
 enum Tester {
     Alpha,
+    #[pyo3_smd(skip)]
     Beta,
 }
 

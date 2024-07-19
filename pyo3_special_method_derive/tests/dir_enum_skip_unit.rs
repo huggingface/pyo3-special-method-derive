@@ -1,7 +1,8 @@
 use pyo3::pyclass;
 use pyo3_special_method_derive::Dir;
 
-#[pyclass]
+#[derive(PartialEq)]
+#[pyclass(eq, eq_int)]
 #[derive(Dir)]
 #[allow(dead_code)]
 enum Tester {

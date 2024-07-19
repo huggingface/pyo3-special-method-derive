@@ -1,23 +1,3 @@
-//! Derive macros to help with Rust PyO3 support.
-//!
-//! Please see [these docs](https://docs.rs/pyo3_special_method_derive_lib/0.3.1/pyo3_special_method_derive_lib/) for the PyDisplay and PyDebug
-//! traits which power `Str` and `Repr`.
-//!
-//! This crate automatically derives the following functions for structs and enums:
-//! - `__str__`
-//! - `__repr__`
-//! - `__dir__`
-//! - `__getattr__`
-//! - `__dict__`
-//!
-//! - Skip exposure of variants or fields with the `#[pyo3_smd(skip)]` attribute
-//! - Skip variants or fields for `__str__` or `__repr__` differently with the `#[pyo3_smd_str(skip)]` and `#[pyo3_smd_repr(skip)]` attributes
-//! - Struct fields which are not `pub` are skipped automatically
-//!
-//! When you have custom Rust structs which need to implement `PyDisplay` and `PyDebug`, you should use the `AutoDisplay` and `AutoDebug` traits.
-//! This will have the same output as `Str` and `Repr` respectively.
-//!
-
 extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::quote;
@@ -60,7 +40,7 @@ fn implements_display(ty: &Ident) -> bool {
 /// - For structs, all fields are skipped which are not marked `pub`
 ///
 /// ## Example
-/// ```
+/// ```ignore
 /// use pyo3::pyclass;
 /// use pyo3_special_method_derive::Dir;
 /// #[pyclass]
@@ -266,7 +246,7 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
 /// - For structs, all fields are skipped which are not marked `pub`
 ///
 /// ## Example
-/// ```
+/// ```ignore
 /// use pyo3::pyclass;
 /// use pyo3_special_method_derive::Str;
 /// #[pyclass]
@@ -293,7 +273,7 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
         #[pyo3::pymethods]
         impl #name {
             pub fn __str__(&self) -> String {
-                use pyo3_special_method_derive_lib::PyDisplay;
+                use pyo3_special_method_derive::PyDisplay;
                 self.fmt_display()
             }
         }
@@ -307,7 +287,7 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 /// This has the same requirements and behavior of [`Str`].
 ///
 /// ## Example
-/// ```
+/// ```ignore
 /// use pyo3_special_method_derive::AutoDisplay;
 /// #[derive(AutoDisplay)]
 /// struct Person {
@@ -335,7 +315,7 @@ pub fn auto_display(input_stream: TokenStream) -> TokenStream {
 
             impl std::fmt::Display for #name {
                 fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                    use pyo3_special_method_derive_lib::PyDisplay;
+                    use pyo3_special_method_derive::PyDisplay;
                     write!(f, "{}", self.fmt_display())
                 }
             }
@@ -350,7 +330,7 @@ pub fn auto_display(input_stream: TokenStream) -> TokenStream {
 /// This has the same requirements and behavior of [`Str`].
 ///
 /// ## Example
-/// ```
+/// ```ignore
 /// use pyo3_special_method_derive::AutoDisplayDerive;
 /// #[derive(AutoDisplayDerive)]
 /// struct Person {
@@ -374,7 +354,7 @@ pub fn auto_display_debug(input_stream: TokenStream) -> TokenStream {
 
         impl std::fmt::Display for #name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                use pyo3_special_method_derive_lib::PyDisplay;
+                use pyo3_special_method_derive::PyDisplay;
                 write!(f, "{}", self.fmt_display())
             }
         }
@@ -394,7 +374,7 @@ pub fn auto_display_debug(input_stream: TokenStream) -> TokenStream {
 /// - For structs, all fields are skipped which are not marked `pub`
 ///
 /// ## Example
-/// ```
+/// ```ignore
 /// use pyo3::pyclass;
 /// use pyo3_special_method_derive::Repr;
 /// #[pyclass]
@@ -421,7 +401,7 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
         #[pyo3::pymethods]
         impl #name {
             pub fn __repr__(&self) -> String {
-                use pyo3_special_method_derive_lib::PyDebug;
+                use pyo3_special_method_derive::PyDebug;
                 self.fmt_debug()
             }
         }
@@ -435,7 +415,7 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
 /// This has the same requirements and behavior of [`Repr`].
 ///
 /// ## Example
-/// ```
+/// ```ignore
 /// use pyo3_special_method_derive::AutoDebug;
 /// #[derive(AutoDebug)]
 /// struct Person {
@@ -461,7 +441,7 @@ pub fn auto_debug(input_stream: TokenStream) -> TokenStream {
 
             impl std::fmt::Debug for #name {
                 fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                    use pyo3_special_method_derive_lib::PyDebug;
+                    use pyo3_special_method_derive::PyDebug;
                     write!(f, "{}", self.fmt_debug())
                 }
             }
@@ -477,7 +457,7 @@ pub fn auto_debug(input_stream: TokenStream) -> TokenStream {
 /// - Skip printing of certain fields or variants by adding the `#[pyo3_smd(skip)]` attribute macro
 ///
 /// ## Example
-/// ```
+/// ```ignore
 /// use pyo3::pyclass;
 /// use pyo3_special_method_derive::Getattr;
 /// #[pyclass]
@@ -702,7 +682,7 @@ pub fn getattr_derive(input: TokenStream) -> TokenStream {
 /// - Skip printing of certain fields or variants by adding the `#[pyo3_smd(skip)]` attribute macro
 ///
 /// ## Example
-/// ```
+/// ```ignore
 /// use pyo3::pyclass;
 /// use pyo3_special_method_derive::Dict;
 /// #[pyclass]

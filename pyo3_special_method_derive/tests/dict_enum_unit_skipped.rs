@@ -3,11 +3,13 @@ use std::collections::HashMap;
 use pyo3::{pyclass, types::PyAnyMethods, Python};
 use pyo3_special_method_derive::Dict;
 
-#[pyclass]
+#[derive(PartialEq)]
+#[pyclass(eq, eq_int)]
 #[derive(Dict)]
 #[allow(dead_code)]
 enum Tester {
     Alpha,
+    #[pyo3_smd(skip)]
     Beta,
 }
 
