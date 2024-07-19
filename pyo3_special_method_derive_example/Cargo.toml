@@ -10,7 +10,8 @@ repository.workspace = true
 pyo3 = { version = "0.21.2", features = ["multiple-pymethods"] }
 pyo3_special_method_derive = {path = "../pyo3_special_method_derive_core"}
 pyo3_special_method_derive_lib = {path = "../pyo3_special_method_derive_lib"}
-
+log = "0.4"
+env_logger = "0.9"
 [lib]
 name = "pyo3_smd_example"
 crate-type = ["cdylib"]

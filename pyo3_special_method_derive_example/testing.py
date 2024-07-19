@@ -1,9 +1,18 @@
 from pyo3_smd_example import PyCity, Person
+import os
+# Set the logging level for Rust (e.g., DEBUG, INFO, WARN, ERROR)
+os.environ['RUST_LOG'] = 'info'
 
+# Initialize logging configuration
+import logging
+logging.basicConfig(level=logging.INFO)
+
+os.environ["RUST_BACKTRACE"] = "1"
 # Create a new city
 london = PyCity("London")
 nyc = PyCity("New york")
 # Create a person living in London
+
 person = Person(
     name="John Doe",
     age=30,
@@ -12,7 +21,10 @@ person = Person(
     street="Baker Street",
     street_number=221
 )
-
+print(person.__dict__)
+print(dir(person))
+print(person)
+print(person.get_age())
 # Check if the address is occupied in London
 address_key = "Baker Street-221"
 is_occupied = london.is_address_occupied(address_key)

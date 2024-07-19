@@ -29,7 +29,7 @@ mod str_repr;
 const ATTR_NAMESPACE: &str = "pyo3_smd";
 const ATTR_NAMESPACE_STR: &str = "pyo3_smd_str";
 const ATTR_NAMESPACE_REPR: &str = "pyo3_smd_repr";
-const ATTR_NAMESPACE_NO_SKIP: &str = "pyo3_no_skip";
+const ATTR_NAMESPACE_NO_FMT_SKIP: &str = "pyo3_fmt_no_skip";
 const ATTR_NAMESPACE_AUTO_DISPLAY: &str = "auto_display";
 /// Add a `__dir__` method to a struct or enum.
 ///
@@ -255,7 +255,7 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(Str, attributes(pyo3_smd, pyo3_smd_str, pyo3_no_skip))]
+#[proc_macro_derive(Str, attributes(pyo3_smd, pyo3_smd_str, pyo3_fmt_no_skip))]
 pub fn str_derive(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
 

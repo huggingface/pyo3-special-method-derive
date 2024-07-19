@@ -11,6 +11,7 @@ syn = "2.0.66"
 quote = "1.0"
 proc-macro2 = "1.0"
 quote_into = "0.2.0"
+log= "0.4"
 pyo3 = { version = "0.21", features = ["multiple-pymethods"] }
 pyo3_special_method_derive_lib = "0.3.0"
 
