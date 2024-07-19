@@ -29,5 +29,5 @@ struct Person {
 ## PyO3 feature note
 To use `pyo3-special-method-derive`, you should enable the `multiple-pymethods` feature on PyO3:
 ```
-pyo3 = { version = "0.21", features = ["multiple-pymethods"] }
+pyo3 = { version = "0.22", features = ["multiple-pymethods"] }
 ```

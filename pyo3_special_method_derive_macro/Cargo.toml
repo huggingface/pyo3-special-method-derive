@@ -11,7 +11,7 @@ syn = "2.0.66"
 quote = "1.0"
 proc-macro2 = "1.0"
 quote_into = "0.2.0"
-pyo3 = { version = "0.22", features = ["multiple-pymethods"] }
+pyo3.workspace = true
 
 [lib]
 proc-macro = true

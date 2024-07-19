@@ -14,3 +14,4 @@ license = "MIT"
 repository = "https://github.com/EricLBuehler/pyo3-special-method-derive"
 
 [workspace.dependencies]
+pyo3 = { version = "0.22", features = ["multiple-pymethods"] }

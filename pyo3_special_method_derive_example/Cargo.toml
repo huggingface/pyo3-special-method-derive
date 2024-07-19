@@ -7,7 +7,7 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-pyo3 = { version = "0.22", features = ["multiple-pymethods"] }
+pyo3.workspace = true
 pyo3_special_method_derive = {path = "../pyo3_special_method_derive"}
 log = "0.4"
 env_logger = "0.9"
