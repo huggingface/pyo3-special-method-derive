@@ -1,6 +1,6 @@
 //! Derive macros to make Rust objects more friendly 🤗.
 //!
-//! Please see [these docs](https://docs.rs/pyo3_special_method_derive/0.4.0/pyo3_special_method_derive/) for the PyDisplay and PyDebug
+//! Please see [these docs](https://docs.rs/pyo3_special_method_derive/0.4.1/pyo3_special_method_derive/) for the PyDisplay and PyDebug
 //! traits which power `Str` and `Repr`.
 //!
 //! This crate automatically derives the following functions for structs and enums:
