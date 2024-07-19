@@ -84,12 +84,12 @@ fn generate_fmt_impl_for_struct(
             for attr in &f.attrs {
                 let path = attr.path();
                 if path.is_ident(ATTR_NAMESPACE) || path.is_ident(ATTR_NAMESPACE_AUTO_DISPLAY) || path.is_ident(namespace) {
-                    attr.parse_nested_meta(|meta| {
+                    let _ = attr.parse_nested_meta(|meta| {
                         if meta.path.is_ident("skip") {
                             to_skip = true;
                         }
                         Ok(())
-                    }).unwrap();
+                    });
                     break;
                 } else if path.is_ident(ATTR_NAMESPACE_NO_FMT_SKIP) {
                     // Explicitly mark to not skip the field
