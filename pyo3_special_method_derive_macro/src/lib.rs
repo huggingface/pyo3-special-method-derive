@@ -135,19 +135,19 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
         }
         Data::Enum(e) => {
             let matchers = e.variants.iter()
-            .filter(|variant| {
-                !variant.attrs.iter().any(|attr| {
-                    let mut is_skip = false;
-                    if attr.path().is_ident(ATTR_NAMESPACE) { // only parse ATTR_NAMESPACE and not [serde] or [default]
-                        attr.parse_nested_meta(|meta| {
-                            is_skip = meta.path.is_ident("skip");
-                            Ok(())
-                        })
-                        .unwrap();
-                    }
-                    is_skip
+                .filter(|variant| {
+                    !variant.attrs.iter().any(|attr| {
+                        let mut is_skip = false;
+                        if attr.path().is_ident(ATTR_NAMESPACE) { // only parse ATTR_NAMESPACE and not [serde] or [default]
+                            attr.parse_nested_meta(|meta| {
+                                is_skip = meta.path.is_ident("skip");
+                                Ok(())
+                            })
+                            .unwrap();
+                        }
+                        is_skip
+                    })
                 })
-            })
                 .map(|variant| {
                     let ident = &variant.ident;
                     match &variant.fields {
@@ -161,19 +161,23 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
                         }
                         Fields::Named(fields) => {
                             let field_names = fields.named.iter().map(|f| f.ident.as_ref().unwrap().clone()).collect::<Vec<_>>();
-
-                            let mut assigner = proc_macro2::TokenStream::new();
-                            quote_into::quote_into!(assigner += [#{
-                                for name in &field_names {
-                                    quote_into::quote_into!(assigner += (names.push(stringify!(#name).to_string())),)
-                                }
-                            }];);
-
-                            quote! {
-                                Self::#ident { .. } => {
-                                    let mut names = Vec::new();
-                                    #assigner
-                                    names
+                            
+                            if field_names.is_empty() {
+                                quote! { Self::#ident { .. } => { vec![] } }
+                            } else {
+                                let mut assigner = proc_macro2::TokenStream::new();
+                                quote_into::quote_into!(assigner += [#{
+                                    for name in &field_names {
+                                        quote_into::quote_into!(assigner += (names.push(stringify!(#name).to_string())),)
+                                    }
+                                }];);
+    
+                                quote! {
+                                    Self::#ident { .. } => {
+                                        let mut names = Vec::new();
+                                        #assigner
+                                        names
+                                    }
                                 }
                             }
                         }
@@ -323,44 +327,6 @@ pub fn auto_display(input_stream: TokenStream) -> TokenStream {
 
         TokenStream::from(expanded)
     }
-}
-
-/// Implement `PyDisplay` and `Display` on a struct or enum.
-///
-/// This has the same requirements and behavior of [`Str`].
-///
-/// ## Example
-/// ```ignore
-/// use pyo3_special_method_derive::AutoDisplayDerive;
-/// #[derive(AutoDisplayDerive)]
-/// struct Person {
-///     pub name: String,
-///     address: String,
-///     #[auto_display(skip)]
-///     pub phone_number: String,
-///     #[auto_display] // -> force display of private field
-///     hash: u32,
-/// }
-/// ```
-#[proc_macro_derive(AutoDisplayDerive, attributes(pyo3_smd, pyo3_smd_str, auto_display))]
-pub fn auto_display_debug(input_stream: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input_stream as DeriveInput);
-    let name = &input.ident;
-
-    let display_debug_derive_body = impl_formatter(&input, DeriveType::ForAutoDisplay);
-
-    let expanded = quote! {
-        #display_debug_derive_body
-
-        impl std::fmt::Display for #name {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                use pyo3_special_method_derive::PyDisplay;
-                write!(f, "{}", self.fmt_display())
-            }
-        }
-    };
-
-    TokenStream::from(expanded)
 }
 
 /// Add a `__repr__` method to the struct or enum.
