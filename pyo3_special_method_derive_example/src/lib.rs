@@ -1,6 +1,5 @@
-use env_logger;
-use log::{error, info};
-use pyo3::{pyclass, pymethods, pymodule, types::PyModule, PyErr, PyResult, Python};
+use log::info;
+use pyo3::{pyclass, pymethods, pymodule, types::PyModule, PyResult, Python};
 use pyo3_special_method_derive::{AutoDebug, AutoDisplay, Dict, Dir, Getattr, Repr, Str};
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -161,8 +160,8 @@ impl Person {
     ) {
         let new_address_key = format!("{}-{}", new_street, new_street_number);
         {
-            let Address = self.address.read().unwrap();
-            let mut current_city = Address.get_city().city.write().unwrap();
+            let address = self.address.read().unwrap();
+            let mut current_city = address.get_city().city.write().unwrap();
             let current_address_key = self.address.read().unwrap().get_address_key();
             current_city.free_address(&current_address_key);
         }

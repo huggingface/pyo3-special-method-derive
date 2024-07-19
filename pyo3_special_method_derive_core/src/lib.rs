@@ -40,10 +40,7 @@ fn implements_debug(ty: &Ident) -> bool {
     let generated_code = expanded.to_string();
 
     let syntax_tree = syn::parse_file(&generated_code);
-    match syntax_tree {
-        Ok(_) => true,
-        Err(_) => false,
-    }
+    syntax_tree.is_ok()
 }
 
 fn implements_display(ty: &Ident) -> bool {
@@ -54,10 +51,7 @@ fn implements_display(ty: &Ident) -> bool {
     let generated_code = expanded.to_string();
 
     let syntax_tree = syn::parse_file(&generated_code);
-    match syntax_tree {
-        Ok(_) => true,
-        Err(_) => false,
-    }
+    syntax_tree.is_ok()
 }
 
 /// Add a `__dir__` method to a struct or enum.
@@ -336,7 +330,7 @@ pub fn auto_display(input_stream: TokenStream) -> TokenStream {
     // let attr = find_display_attribute(&parsed_input.attrs);
     let display_debug_derive_body = impl_formatter(&input, DeriveType::ForAutoDisplay);
 
-    if implements_display(&name) {
+    if implements_display(name) {
         TokenStream::from(display_debug_derive_body)
     } else {
         let expanded = quote! {
@@ -461,7 +455,7 @@ pub fn auto_debug(input_stream: TokenStream) -> TokenStream {
 
     let display_debug_derive_body = impl_formatter(&input, DeriveType::ForAutoDebug);
 
-    if implements_debug(&name) {
+    if implements_debug(name) {
         TokenStream::from(display_debug_derive_body)
     } else {
         let name = &input.ident;
