@@ -1,10 +1,10 @@
-import pyo3_smd_example
+from pyo3_smd_example import PyCity, Person
 
 # Create a new city
-london = pyo3_smd_example.PyCity("London")
-
+london = PyCity("London")
+nyc = PyCity("New york")
 # Create a person living in London
-person = pyo3_smd_example.Person(
+person = Person(
     name="John Doe",
     age=30,
     country="UK",
@@ -19,7 +19,7 @@ is_occupied = london.is_address_occupied(address_key)
 print(f"Address {address_key} occupied: {is_occupied}")  # Should print: True
 
 # Change the person's address
-new_york = pyo3_smd_example.PyCity("New York")
+new_york = PyCity("New York")
 person.change_address(
     new_country="USA",
     new_city=new_york,

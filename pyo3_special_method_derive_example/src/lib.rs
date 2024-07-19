@@ -5,12 +5,12 @@ use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 
 #[derive(Clone, AutoDisplay, AutoDebug, PartialEq, Eq, Hash, Default)]
-#[auto_display(fmt = "City.{}")]
+#[auto_display(fmt = "")] // We don't want CityName(Paris), but directly Paris
 pub enum CityName {
     Paris,
     #[default]
     London,
-    #[auto_display(fmt = "CityName:{}")]
+    #[auto_display(fmt = "NYC the best city in the world")]
     NewYork,
 }
 
@@ -28,6 +28,7 @@ impl FromStr for CityName {
 }
 
 #[derive(Default, AutoDebug, AutoDisplay)]
+#[auto_display(fmt = "{}")]
 pub struct City {
     name: CityName,
     addresses: HashMap<String, Arc<RwLock<PyAddress>>>,
@@ -75,7 +76,7 @@ pub enum MyObjectWrapper {
 #[pyclass]
 #[derive(Repr, Str, Clone)]
 pub struct PyCity {
-    pub(crate) city: Arc<RwLock<City>>,
+    pub city: Arc<RwLock<City>>, // TODO currently this printed as PyCity(city=RwLock { data: City(name=CityName(City.London), addresses={}), poisoned: false, .. })
 }
 
 #[pymethods]

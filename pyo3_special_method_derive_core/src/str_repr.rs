@@ -175,6 +175,8 @@ pub fn find_display_attribute(attr: &Attribute) -> Option<TokenStream> {
     } else {
         None
     }
+
+    
 }
 
 
@@ -185,19 +187,34 @@ fn generate_fmt_impl_for_enum(
     string_formater: Option<&Vec<Attribute>>,
 ) -> proc_macro2::TokenStream {
     let variants = data_enum.variants.iter().collect::<Vec<_>>();
-    let mut default_formatter =  quote! { "{}"} ;
+    let mut ident_formatter =  quote! { "{}"} ;
     if let Some(attrs) = string_formater {
         for attr in attrs {
             if attr.path().is_ident("auto_display") {
                 if let Some(formatter) = find_display_attribute(attr) {
-                    default_formatter = formatter;
-                    println!("Found parent formatter: {:?}", default_formatter.clone());
+                    ident_formatter = formatter;
+                    println!("Found parent formatter: {:?}", ident_formatter.clone());
                     break;
                 } 
                 break;
             }
         }
     }
+
+    let fmt_str = ident_formatter.to_string();
+
+    // Check if the formatter string contains "{}"
+    let ident_formatter = if fmt_str.contains("{}") {
+        quote! {
+            &format!(#ident_formatter, single)
+        }
+    } else {
+        quote! {
+            &format!(#ident_formatter)
+        }
+    };
+
+
     let arms = variants.iter().map(|variant| {
         let ident = &variant.ident;
         let (to_skip, display_attr) = {
@@ -226,52 +243,47 @@ fn generate_fmt_impl_for_enum(
             (to_skip, display_attr)
         };
         
-
-        let fmt_ = if let Some(display_attr) = display_attr {
+        let mut variant_fmt = quote! { "{}"};
+        if let Some(display_attr) = display_attr {
             if let Some(formatter) = find_display_attribute(display_attr) {
-                println!("Found parent formatter: {:?}", formatter.clone());
-                formatter
-            }  else {
-                default_formatter.clone()
+                println!("Found variant formatter: {:?}", formatter.clone());
+                variant_fmt = formatter;
             }
-        } else {
-            default_formatter.clone()
-        };
-        
-        
-        
-        println!("{}", fmt_);
-        let generate_match_arm = |body: proc_macro2::TokenStream| {
-            if !to_skip {
-                quote! { Self::#ident => repr += &#body, }
-            } else {
-                quote! { Self::#ident => repr += "<variant skipped>", }
-            }
-        };
+        }
+
+
+
+        // If {} is not in ident_fmt, we must not format ident.
+        // If {} is not in variant_fmt, we don't use stringify! either
         match &variant.fields {
             Fields::Unit => {
+                // Check if the formatter string contains "{}"
+                let variant_fmt = if variant_fmt.to_string().contains("{}") {
+                    quote! {
+                        &format!(#variant_fmt, stringify!(#ident))
+                    }
+                } else {
+                    quote! {
+                        &format!(#variant_fmt)
+                    }
+                };
                 if !to_skip {
                     quote! {
-                        Self::#ident => repr += &format!(#fmt_, stringify!(#ident)),
+                        Self::#ident => repr += #variant_fmt,
                     }
                 } else {
                     quote! {
                         Self::#ident => repr += "<variant skipped>",
                     }
-                } 
-                // potantially for a more pythonic print, {}.{} replace by just {}. Ex: PrependScheme.First -> "first"
-                // as in most cases, we have something like Class(adress = ) and don't want Adress.Dummy, but just "dummy"
-                // Maybe if Str then we have "{}" but AutoDisplay is rust so "{}.{}".
+                }
             }
             syn::Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
                 // Tuple variant with one field
                 if !to_skip {
                     let quote = 
-                    quote! { #name::#ident(ref single) => {&format!(#fmt_, single);} };
-                    print!("unamed : {}\n",quote);
+                    quote! { #name::#ident(ref single) => {#ident_formatter;} };
                     quote
                 } else {
-                    println!("Skipping {}, {}", ident, name);
                     quote! {
                         #ident => repr += "<variant skipped>",
                     }
