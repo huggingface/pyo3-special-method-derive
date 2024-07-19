@@ -287,7 +287,6 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 
     let display_derive_body = impl_formatter(&input, DeriveType::ForAutoDisplay);
 
-    println!("{}\n", display_derive_body);
     let expanded = quote! {
         #display_derive_body
 
@@ -300,9 +299,7 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
         }
     };
 
-    let res = TokenStream::from(expanded);
-    println!("{}\n", res);
-    res
+    TokenStream::from(expanded)
 }
 
 /// Implement `PyDisplay` on a struct or enum. Implements `Display` based on `PyDisplay` if the type does not.

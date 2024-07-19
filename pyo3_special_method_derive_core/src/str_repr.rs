@@ -94,7 +94,7 @@ fn generate_fmt_impl_for_struct(
                     });
                     if res.is_err() {
                         // Handle parse error if needed
-                        eprintln!("Failed to parse attribute {:?}", attr_path);
+                        panic!("Failed to parse attribute {:?}", attr_path);
                     }
                 } else if attr_path.is_ident(ATTR_NAMESPACE_NO_FMT_SKIP) {
                     // Explicitly mark to not skip the field
@@ -192,7 +192,6 @@ fn generate_fmt_impl_for_enum(
             if attr.path().is_ident(ATTR_NAMESPACE_AUTO_DISPLAY) {
                 if let Some(formatter) = find_display_attribute(attr) {
                     ident_formatter = formatter;
-                    println!("Found parent formatter: {:?}", ident_formatter.clone());
                     break;
                 }
                 break;
@@ -244,7 +243,6 @@ fn generate_fmt_impl_for_enum(
         let mut variant_fmt = quote! { "{}"};
         if let Some(display_attr) = display_attr {
             if let Some(formatter) = find_display_attribute(display_attr) {
-                println!("Found variant formatter: {:?}", formatter.clone());
                 variant_fmt = formatter;
             }
         }

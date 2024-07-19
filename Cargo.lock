@@ -235,7 +235,6 @@ dependencies = [
 name = "pyo3_special_method_derive"
 version = "0.3.0"
 dependencies = [
- "log",
  "proc-macro2",
  "pyo3",
  "pyo3_special_method_derive_lib 0.3.0 (registry+https://github.com/rust-lang/crates.io-index)",

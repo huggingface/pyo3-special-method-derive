@@ -1,6 +1,5 @@
-use env_logger;
 use log::info;
-use pyo3::{pyclass, pymethods, pymodule, types::PyModule, PyResult, Python};
+use pyo3::{pyclass, pymethods, pymodule, types::PyModule, Bound, PyResult, Python};
 use pyo3_special_method_derive::{AutoDebug, AutoDisplay, Dict, Dir, Getattr, Repr, Str};
 use std::collections::HashMap;
 use std::str::FromStr;
@@ -209,7 +208,7 @@ impl PyAddress {
 }
 
 #[pymodule]
-fn pyo3_smd_example(_py: Python, m: &PyModule) -> PyResult<()> {
+fn pyo3_smd_example(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     env_logger::init();
     m.add_class::<Person>()?;
     m.add_class::<PyCity>()?;
