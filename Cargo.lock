@@ -195,6 +195,7 @@ dependencies = [
 [[package]]
 name = "pyo3_special_method_derive"
 version = "0.3.1"
+version = "0.3.1"
 dependencies = [
  "pyo3",
  "pyo3_special_method_derive_macro",
@@ -203,11 +204,13 @@ dependencies = [
 [[package]]
 name = "pyo3_special_method_derive_example"
 version = "0.3.1"
+version = "0.3.1"
 dependencies = [
  "env_logger",
  "log",
  "pyo3",
  "pyo3_special_method_derive",
+ "pyo3_special_method_derive_lib 0.3.0",
 ]
 
 [[package]]
