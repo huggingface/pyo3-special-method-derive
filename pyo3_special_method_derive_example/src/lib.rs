@@ -1,8 +1,10 @@
-use pyo3::{pyclass, pymethods, pymodule, types::PyModule, PyResult, Python};
+use pyo3::{pyclass, pymethods, pymodule, types::PyModule, PyResult, Python, PyErr};
 use pyo3_special_method_derive::{AutoDebug, AutoDisplay, Dict, Dir, Getattr, Repr, Str};
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
+use log::{info, error};
+use env_logger;
 
 #[derive(Clone, AutoDisplay, AutoDebug, PartialEq, Eq, Hash, Default)]
 #[auto_display(fmt = "")] // We don't want CityName(Paris), but directly Paris
@@ -31,7 +33,7 @@ impl FromStr for CityName {
 #[auto_display(fmt = "{}")]
 pub struct City {
     name: CityName,
-    addresses: HashMap<String, Arc<RwLock<PyAddress>>>,
+    pub addresses: HashMap<String, Arc<RwLock<PyAddress>>>,
 }
 
 impl City {
@@ -97,6 +99,7 @@ impl PyCity {
     }
 }
 
+// Name enum, will show PyAdress.House(country=..., city=...,) etc
 #[pyclass]
 #[derive(Dir, Dict, Str, Repr, Getattr, Clone)]
 pub enum PyAddress {
@@ -109,11 +112,11 @@ pub enum PyAddress {
 }
 
 #[pyclass]
-#[derive(Dir, Str, Repr, Getattr, Dict)]
+#[derive(Dir, Str, Repr, Getattr, Dict, Clone)]
 pub struct Person {
     pub name: String,
-    pub age: u8,
-    #[pyo3_no_skip]
+    #[pyo3_fmt_no_skip]
+    age: u8,
     address: Arc<RwLock<PyAddress>>,
 }
 
@@ -134,16 +137,18 @@ impl Person {
             street: street.clone(),
             street_number,
         };
+        info!("Creating a person");
         let address_arc = Arc::new(RwLock::new(address));
         {
             let mut city = city.city.write().unwrap();
             let address_key = format!("{}-{}", street, street_number);
             city.occupy_address(address_key, address_arc.clone());
         }
+        info!("Creating a new Person instance with name: {}", name.clone());
         Self {
             name,
             age,
-            address: address_arc,
+            address: address_arc.clone(),
         }
     }
 
@@ -175,9 +180,12 @@ impl Person {
         self.address = new_address_arc;
     }
 
-    pub fn get_address(&self) -> String {
-        let address = self.address.read().unwrap();
-        address.get_full_address()
+    pub fn get_age(&self) -> String{
+        format!("{}", self.age)
+    }
+    pub fn get_address(&self) -> PyResult<PyAddress> {
+        let address = self.address.read().map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Failed to read address: {:?}", e)))?;
+        Ok(address.clone())
     }
 }
 
@@ -220,6 +228,7 @@ impl PyAddress {
 
 #[pymodule]
 fn pyo3_smd_example(_py: Python, m: &PyModule) -> PyResult<()> {
+    env_logger::init();
     m.add_class::<Person>()?;
     m.add_class::<PyCity>()?;
     Ok(())

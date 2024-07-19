@@ -1,9 +1,10 @@
-use crate::{ATTR_NAMESPACE, ATTR_NAMESPACE_NO_SKIP, ATTR_NAMESPACE_REPR, ATTR_NAMESPACE_STR};
+use crate::{ATTR_NAMESPACE, ATTR_NAMESPACE_NO_FMT_SKIP, ATTR_NAMESPACE_REPR, ATTR_NAMESPACE_STR};
 use quote::quote;
 use syn::MetaList;
 use syn::{DeriveInput, Fields, Ident, Lit, Meta, MetaNameValue, Visibility, Attribute, Token, LitStr};
 use syn::parse::{Parse, ParseStream};
 use proc_macro2::TokenStream;
+use log::{info, error};
 macro_rules! create_body {
     ($input:expr, $ident:expr, $is_repr:expr) => {
         match &$input.data {
@@ -70,30 +71,35 @@ fn generate_fmt_impl_for_struct(
 ) -> proc_macro2::TokenStream {
     let fields = &data_struct.fields;
     let fields = fields
-        .iter()
-        .filter(|f| {
-            !f.attrs.iter().any(|attr| {
-                let namespace = if is_repr {
-                    ATTR_NAMESPACE_REPR
-                } else {
-                    ATTR_NAMESPACE_STR
-                };
-                let mut is_skip = matches!(f.vis, Visibility::Public(_));
+    .iter()
+    .filter(|f| {
+        // Default `is_skip` based on the field's visibility
+        let mut is_skip = !matches!(f.vis, Visibility::Public(_));
 
-                if attr.path().is_ident(namespace) {
-                    // only parse ATTR_NAMESPACE and not [serde] or [default]
-                    attr.parse_nested_meta(|meta| {
-                        is_skip = meta.path.is_ident("skip");
-                        Ok(())
-                    })
-                    .unwrap();
-                } else if attr.path().is_ident(ATTR_NAMESPACE_NO_SKIP) {
-                    is_skip = false;
+        for attr in &f.attrs {
+            let namespace = if is_repr { ATTR_NAMESPACE_REPR } else { ATTR_NAMESPACE_STR };
+            let attr_path = attr.path();
+
+            if attr_path.is_ident(namespace) {
+                // Parse attributes in the specified namespace
+                if let Err(_) = attr.parse_nested_meta(|meta| {
+                    if meta.path.is_ident("skip") {
+                        is_skip = true;
+                    }
+                    Ok(())
+                }) {
+                    // Handle parse error if needed
+                    eprintln!("Failed to parse attribute {:?}", attr_path);
                 }
-                is_skip
-            })
-        })
-        .collect::<Vec<_>>();
+            } else if attr_path.is_ident(ATTR_NAMESPACE_NO_FMT_SKIP) {
+                // Explicitly mark to not skip the field
+                is_skip = false;
+                break;
+            }
+        }
+        !is_skip
+    })
+    .collect::<Vec<_>>();
     let field_fmts = fields
         .iter()
         .enumerate()
