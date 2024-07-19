@@ -13,6 +13,8 @@ use std::{
     },
 };
 
+pub use pyo3_special_method_derive_macro::*;
+
 /// Number of *characters* to display for each implementation in this crate,
 /// defaults to 100. May be a few chars above or below.
 pub static ELLIPSIS_CHAR_N: AtomicUsize = AtomicUsize::new(100);

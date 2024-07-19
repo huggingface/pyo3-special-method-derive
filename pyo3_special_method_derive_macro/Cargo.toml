@@ -1,5 +1,5 @@
 [package]
-name = "pyo3_special_method_derive"
+name = "pyo3_special_method_derive_macro"
 version.workspace = true
 edition.workspace = true
 description.workspace = true
@@ -11,8 +11,7 @@ syn = "2.0.66"
 quote = "1.0"
 proc-macro2 = "1.0"
 quote_into = "0.2.0"
-pyo3 = { version = "0.21", features = ["multiple-pymethods"] }
-pyo3_special_method_derive_lib = "0.3.1"
+pyo3 = { version = "0.22", features = ["multiple-pymethods"] }
 
 [lib]
 proc-macro = true

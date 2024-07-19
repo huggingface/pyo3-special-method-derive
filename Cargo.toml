@@ -1,8 +1,8 @@
 [workspace]
 members = [
-    "pyo3_special_method_derive_core",
+    "pyo3_special_method_derive_macro",
     "pyo3_special_method_derive_example",
-    "pyo3_special_method_derive_lib"
+    "pyo3_special_method_derive"
 ]
 resolver = "2"
 
