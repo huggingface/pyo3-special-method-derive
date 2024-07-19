@@ -1,14 +1,18 @@
 use crate::{ATTR_NAMESPACE, ATTR_NAMESPACE_NO_SKIP, ATTR_NAMESPACE_REPR, ATTR_NAMESPACE_STR};
-use quote::quote;
-use syn::MetaList;
-use syn::{DeriveInput, Fields, Ident, Lit, Meta, MetaNameValue, Visibility, Attribute, Token, LitStr};
-use syn::parse::{Parse, ParseStream};
 use proc_macro2::TokenStream;
+use quote::quote;
+use syn::parse::{Parse, ParseStream};
+use syn::MetaList;
+use syn::{
+    Attribute, DeriveInput, Fields, Ident, Lit, LitStr, Meta, MetaNameValue, Token, Visibility,
+};
 macro_rules! create_body {
     ($input:expr, $ident:expr, $is_repr:expr) => {
         match &$input.data {
             syn::Data::Struct(s) => generate_fmt_impl_for_struct(s, $ident, $is_repr),
-            syn::Data::Enum(e) => generate_fmt_impl_for_enum(e, $ident, $is_repr, Some(&$input.attrs)),
+            syn::Data::Enum(e) => {
+                generate_fmt_impl_for_enum(e, $ident, $is_repr, Some(&$input.attrs))
+            }
             syn::Data::Union(u) => {
                 let error = syn::Error::new_spanned(u.union_token, "Unions are not supported");
                 return proc_macro2::TokenStream::from(error.into_compile_error());
@@ -30,37 +34,34 @@ pub(crate) fn impl_formatter(input: &DeriveInput, ty: DeriveType) -> proc_macro2
     let is_repr = matches!(ty, DeriveType::ForAutoDebug);
 
     // Create body for display and debug
-    let body_display = create_body!(input, ident, !is_repr);
+    let body_display = create_body!(input, ident, is_repr);
     let body_debug = create_body!(input, ident, is_repr);
 
-
     // Determine which traits to implement
-    let (ty_trait, ty_fn) = match ty {
-        DeriveType::ForAutoDisplay => (
-            quote! { impl std::fmt::Display },
-            quote! {
-                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {#body_display; write!(f, "{}", repr)}
-            },
-        ),
-        DeriveType::ForAutoDebug => (
-            quote! { impl std::fmt::Debug },
-            quote! {
-                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {#body_debug; write!(f, "{}", repr)}
-            },
-        ),
-    };
-
-    let res = if !ty_trait.is_empty() {
-        quote! {
-            #ty_trait for #ident {
-                #ty_fn
-            }
+    match ty {
+        DeriveType::ForAutoDisplay => {
+            (quote! {
+                impl pyo3_special_method_derive_lib::PyDisplay for #ident {
+                    fn fmt_display(&self) -> String {
+                        use pyo3_special_method_derive_lib::PyDisplay;
+                        #body_display
+                        repr
+                    }
+                }
+            })
         }
-    } else {
-        quote! {}
-    };
-    println!("{}\n", res);
-    res
+        DeriveType::ForAutoDebug => {
+            (quote! {
+                impl pyo3_special_method_derive_lib::PyDebug for #ident {
+                    fn fmt_debug(&self) -> String {
+                        use pyo3_special_method_derive_lib::PyDebug;
+                        #body_debug
+                        repr
+                    }
+                }
+            })
+        }
+    }
 }
 
 fn generate_fmt_impl_for_struct(
@@ -80,7 +81,7 @@ fn generate_fmt_impl_for_struct(
                 };
                 let mut is_skip = matches!(f.vis, Visibility::Public(_));
 
-                if attr.path().is_ident(namespace) {
+                if attr.path().is_ident(ATTR_NAMESPACE) || attr.path().is_ident(namespace) {
                     // only parse ATTR_NAMESPACE and not [serde] or [default]
                     attr.parse_nested_meta(|meta| {
                         is_skip = meta.path.is_ident("skip");
@@ -99,18 +100,18 @@ fn generate_fmt_impl_for_struct(
         .enumerate()
         .map(|(i, field)| {
             let postfix = if i + 1 < fields.len() { ", " } else { "" };
-            let formatter = if is_repr { "{}={:?}{}" } else { "{}={}{}" };
+            let formatter = if is_repr { quote! { fmt_debug } } else { quote! { fmt_display } };
             match &field.ident {
                 Some(ident) => {
                     quote! {
-                        repr += &format!(#formatter, stringify!(#ident), self.#ident, #postfix);
+                        repr += &format!("{}={}{}", stringify!(#ident), self.#ident.#formatter(), #postfix);
                     }
                 }
                 None => {
                     // If the field doesn't have a name, we generate a name based on its index
                     let index = syn::Index::from(i);
                     quote! {
-                        repr += &format!(#formatter stringify!(#index), self.#index, #postfix);
+                        repr += &format!("{}={}{}", stringify!(#index), self.#index.#formatter(), #postfix);
                     }
                 }
             }
@@ -123,7 +124,6 @@ fn generate_fmt_impl_for_struct(
         repr += ")";
     }
 }
-
 
 // Define a struct to hold the parsed tokens
 struct FmtAttribute {
@@ -159,7 +159,7 @@ pub fn find_display_attribute(attr: &Attribute) -> Option<TokenStream> {
     // Check if we have a valid attribute and return the literal as TokenStream
     if let Some(attr) = attribute {
         if attr.ident == "fmt" {
-            let list_str = attr.lit_str ;
+            let list_str = attr.lit_str;
             Some(quote! { #list_str })
         } else {
             None
@@ -167,10 +167,7 @@ pub fn find_display_attribute(attr: &Attribute) -> Option<TokenStream> {
     } else {
         None
     }
-
-    
 }
-
 
 fn generate_fmt_impl_for_enum(
     data_enum: &syn::DataEnum,
@@ -179,7 +176,7 @@ fn generate_fmt_impl_for_enum(
     string_formater: Option<&Vec<Attribute>>,
 ) -> proc_macro2::TokenStream {
     let variants = data_enum.variants.iter().collect::<Vec<_>>();
-    let mut ident_formatter =  quote! { "{}."} ;
+    let mut ident_formatter = quote! { "{}."};
     if let Some(attrs) = string_formater {
         for attr in attrs {
             if attr.path().is_ident("auto_display") {
@@ -187,7 +184,7 @@ fn generate_fmt_impl_for_enum(
                     ident_formatter = formatter;
                     println!("Found parent formatter: {:?}", ident_formatter.clone());
                     break;
-                } 
+                }
                 break;
             }
         }
@@ -206,7 +203,6 @@ fn generate_fmt_impl_for_enum(
         }
     };
 
-
     let arms = variants.iter().map(|variant| {
         let ident = &variant.ident;
         let (to_skip, display_attr) = {
@@ -217,9 +213,9 @@ fn generate_fmt_impl_for_enum(
             } else {
                 ATTR_NAMESPACE_STR
             };
-        
+
             for attr in &variant.attrs {
-                if attr.path().is_ident(namespace) {
+                if attr.path().is_ident(ATTR_NAMESPACE) || attr.path().is_ident(namespace) {
                     attr.parse_nested_meta(|meta| {
                         if meta.path.is_ident("skip") {
                             to_skip = true;
@@ -231,10 +227,10 @@ fn generate_fmt_impl_for_enum(
                     display_attr = Some(attr);
                 }
             }
-        
+
             (to_skip, display_attr)
         };
-        
+
         let mut variant_fmt = quote! { "{}"};
         if let Some(display_attr) = display_attr {
             if let Some(formatter) = find_display_attribute(display_attr) {
@@ -272,9 +268,7 @@ fn generate_fmt_impl_for_enum(
             syn::Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
                 // Tuple variant with one field
                 if !to_skip {
-                    let quote = 
-                    quote! { #name::#ident(ref single) => {#ident_formatter;} };
-                    quote
+                    quote! { #name::#ident(ref single) => {#ident_formatter;} }
                 } else {
                     quote! {
                         #ident => repr += "<variant skipped>",
@@ -284,19 +278,19 @@ fn generate_fmt_impl_for_enum(
             Fields::Named(fields) => {
                 let field_names: Vec<_> = fields.named.iter().map(|f| &f.ident).collect();
                 let mut format_string = "{}.{}(".to_string();
-                let formatter = if is_repr { "{:?}" } else { "{}"};
+                let formatter = if is_repr { quote! { fmt_debug } } else { quote! { fmt_display } };
                 for (i, name) in field_names.iter().enumerate() {
                     if i == 0 {
-                            format_string = format!("{format_string}{}={formatter}", name.as_ref().unwrap());
+                        format_string = format!("{format_string}{}={{}}", name.as_ref().unwrap());
                     } else {
-                        format_string = format!("{format_string}, {}={formatter}", name.as_ref().unwrap());
+                        format_string = format!("{format_string}, {}={{}}", name.as_ref().unwrap());
                     }
                 }
                 format_string = format!("{format_string})");
                 if !to_skip {
                     let mut names = Vec::new();
                     for name in field_names.clone() {
-                        names.push(quote! { #name });
+                        names.push(quote! { #name.#formatter() });
                     }
                     quote! {
                         Self::#ident { #(#field_names),* } => repr += &format!(#format_string, stringify!(#name), stringify!(#ident), #(#names),*),

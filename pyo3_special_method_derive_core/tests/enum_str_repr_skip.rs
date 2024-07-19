@@ -20,5 +20,5 @@ fn test_with_str() {
 #[test]
 fn test_with_repr() {
     let res = Tester::Gamma.__repr__();
-    assert_eq!("<variant skipped>", &res);
+    assert_eq!("Tester.<variant skipped>", &res);
 }
