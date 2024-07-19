@@ -1,4 +1,4 @@
-use crate::{ATTR_NAMESPACE, ATTR_NAMESPACE_NO_FMT_SKIP, ATTR_NAMESPACE_REPR, ATTR_NAMESPACE_STR};
+use crate::{ATTR_NAMESPACE, ATTR_NAMESPACE_NO_FMT_SKIP, ATTR_NAMESPACE_REPR, ATTR_NAMESPACE_STR, ATTR_NAMESPACE_AUTO_DISPLAY};
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::parse::{Parse, ParseStream};
@@ -186,7 +186,7 @@ fn generate_fmt_impl_for_enum(
     let mut ident_formatter = quote! { "{}."};
     if let Some(attrs) = string_formatter {
         for attr in attrs {
-            if attr.path().is_ident("auto_display") {
+            if attr.path().is_ident(ATTR_NAMESPACE_AUTO_DISPLAY) {
                 if let Some(formatter) = find_display_attribute(attr) {
                     ident_formatter = formatter;
                     println!("Found parent formatter: {:?}", ident_formatter.clone());
@@ -230,7 +230,7 @@ fn generate_fmt_impl_for_enum(
                         Ok(())
                     }).unwrap();
                 }
-                if attr.path().is_ident("auto_display") {
+                if attr.path().is_ident(ATTR_NAMESPACE_AUTO_DISPLAY) {
                     display_attr = Some(attr);
                 }
             }
