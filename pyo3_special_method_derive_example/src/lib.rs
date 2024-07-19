@@ -1,7 +1,7 @@
-use pyo3::{pyclass, pymethods, pymodule, types::PyModule, PyResult, Python};
 use env_logger;
 use log::info;
-use pyo3_special_method_derive::{AutoDisplay, AutoDebug, Dict, Dir, Getattr, Repr, Str};
+use pyo3::{pyclass, pymethods, pymodule, types::PyModule, PyResult, Python};
+use pyo3_special_method_derive::{AutoDebug, AutoDisplay, Dict, Dir, Getattr, Repr, Str};
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
@@ -32,7 +32,6 @@ impl FromStr for CityName {
 #[derive(Default, AutoDisplay, AutoDebug)]
 #[auto_display(fmt = "{}")]
 pub struct City {
-    
     pub name: CityName,
     addresses: HashMap<String, Arc<RwLock<PyAddress>>>,
 }
@@ -58,7 +57,7 @@ impl City {
     }
 }
 #[pyclass]
-#[derive( Str, Clone, AutoDebug)]
+#[derive(Str, Clone, AutoDebug)]
 pub struct PyCity {
     pub city: Arc<RwLock<City>>, // TODO currently this printed as PyCity(city=RwLock { data: City(name=CityName(City.London), addresses={}), poisoned: false, .. })
 }
