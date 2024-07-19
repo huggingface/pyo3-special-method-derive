@@ -161,7 +161,7 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
                         }
                         Fields::Named(fields) => {
                             let field_names = fields.named.iter().map(|f| f.ident.as_ref().unwrap().clone()).collect::<Vec<_>>();
-                            
+
                             if field_names.is_empty() {
                                 quote! { Self::#ident { .. } => { vec![] } }
                             } else {
@@ -171,7 +171,7 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
                                         quote_into::quote_into!(assigner += (names.push(stringify!(#name).to_string())),)
                                     }
                                 }];);
-    
+
                                 quote! {
                                     Self::#ident { .. } => {
                                         let mut names = Vec::new();
