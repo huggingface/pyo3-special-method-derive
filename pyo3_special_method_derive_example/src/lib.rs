@@ -183,9 +183,8 @@ impl Person {
     pub fn get_age(&self) -> String{
         format!("{}", self.age)
     }
-    pub fn get_address(&self) -> PyResult<PyAddress> {
-        let address = self.address.read().map_err(|e| PyErr::new::<pyo3::exceptions::PyRuntimeError, _>(format!("Failed to read address: {:?}", e)))?;
-        Ok(address.clone())
+    pub fn get_address(&self) -> String{
+        self.address.read().unwrap().get_full_address()
     }
 }
 
@@ -214,13 +213,15 @@ impl PyAddress {
                 street,
                 street_number,
             } => {
+                let city_lock = city.city.read().unwrap(); // Properly handle potential errors in real code
+
                 format!(
                     "{}, {}, {}-{}",
                     country,
-                    city.city.read().unwrap().name,
+                    city_lock.name, // Accessing the name field of PyCity
                     street,
                     street_number
-                )
+               )
             }
         }
     }
