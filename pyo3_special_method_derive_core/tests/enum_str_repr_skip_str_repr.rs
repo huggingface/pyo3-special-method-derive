@@ -15,13 +15,13 @@ enum Tester {
 #[test]
 fn test_with_str_skip() {
     let res = Tester::Beta.__repr__();
-    assert_eq!("<variant skipped>", &res);
+    assert_eq!("Tester.<variant skipped>", &res);
 }
 
 #[test]
 fn test_with_repr_skip() {
     let res = Tester::Gamma.__str__();
-    assert_eq!("<variant skipped>", &res);
+    assert_eq!("Tester.<variant skipped>", &res);
 }
 
 #[test]
