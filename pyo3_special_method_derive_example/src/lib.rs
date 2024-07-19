@@ -1,14 +1,12 @@
 use env_logger;
 use log::{error, info};
 use pyo3::{pyclass, pymethods, pymodule, types::PyModule, PyErr, PyResult, Python};
-use pyo3_special_method_derive::{
-    AutoDebug, AutoDebugDerive, AutoDisplay, AutoDisplayDerive, Dict, Dir, Getattr, Repr, Str,
-};
+use pyo3_special_method_derive::{AutoDebug, AutoDisplay, Dict, Dir, Getattr, Repr, Str};
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 
-#[derive(Clone, AutoDisplayDerive, AutoDebugDerive, PartialEq, Eq, Hash, Default)]
+#[derive(Clone, AutoDisplay, AutoDebug, PartialEq, Eq, Hash, Default)]
 #[auto_display(fmt = "")] // We don't want CityName(Paris), but directly Paris
 pub enum CityName {
     Paris,
@@ -101,7 +99,7 @@ impl PyCity {
     }
 }
 
-// Name enum, will show PyAdress.House(country=..., city=...,) etc
+// Name enum, will show PyAddress.House(country=..., city=...,) etc
 #[pyclass]
 #[derive(Dir, Dict, Str, Repr, Getattr, Clone)]
 pub enum PyAddress {
@@ -163,8 +161,8 @@ impl Person {
     ) {
         let new_address_key = format!("{}-{}", new_street, new_street_number);
         {
-            let adress = self.address.read().unwrap();
-            let mut current_city = adress.get_city().city.write().unwrap();
+            let Address = self.address.read().unwrap();
+            let mut current_city = Address.get_city().city.write().unwrap();
             let current_address_key = self.address.read().unwrap().get_address_key();
             current_city.free_address(&current_address_key);
         }

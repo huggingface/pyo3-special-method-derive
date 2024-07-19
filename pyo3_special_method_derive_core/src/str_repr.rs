@@ -183,11 +183,11 @@ fn generate_fmt_impl_for_enum(
     data_enum: &syn::DataEnum,
     name: &Ident,
     is_repr: bool,
-    string_formater: Option<&Vec<Attribute>>,
+    string_formatter: Option<&Vec<Attribute>>,
 ) -> proc_macro2::TokenStream {
     let variants = data_enum.variants.iter().collect::<Vec<_>>();
     let mut ident_formatter = quote! { "{}."};
-    if let Some(attrs) = string_formater {
+    if let Some(attrs) = string_formatter {
         for attr in attrs {
             if attr.path().is_ident("auto_display") {
                 if let Some(formatter) = find_display_attribute(attr) {
