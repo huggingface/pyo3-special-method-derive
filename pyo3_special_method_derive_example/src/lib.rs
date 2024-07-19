@@ -1,11 +1,12 @@
-use log::info;
 use pyo3::{pyclass, pymethods, pymodule, types::PyModule, PyResult, Python};
-use pyo3_special_method_derive::{AutoDebug, AutoDisplay, Dict, Dir, Getattr, Repr, Str};
+use env_logger;
+use log::info;
+use pyo3_special_method_derive::{AutoDisplay, AutoDebug, Dict, Dir, Getattr, Repr, Str};
 use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 
-#[derive(Clone, AutoDisplay, AutoDebug, PartialEq, Eq, Hash, Default)]
+#[derive(Clone, AutoDisplay, PartialEq, Eq, Hash, Default, AutoDebug)]
 #[auto_display(fmt = "")] // We don't want CityName(Paris), but directly Paris
 pub enum CityName {
     Paris,
@@ -28,12 +29,12 @@ impl FromStr for CityName {
     }
 }
 
-#[derive(Default, AutoDisplay, Debug)]
+#[derive(Default, AutoDisplay, AutoDebug)]
 #[auto_display(fmt = "{}")]
 pub struct City {
     
     pub name: CityName,
-    pub addresses: HashMap<String, Arc<RwLock<PyAddress>>>,
+    addresses: HashMap<String, Arc<RwLock<PyAddress>>>,
 }
 
 impl City {
@@ -57,7 +58,7 @@ impl City {
     }
 }
 #[pyclass]
-#[derive(Repr, Str, Clone, Debug)]
+#[derive( Str, Clone, AutoDebug)]
 pub struct PyCity {
     pub city: Arc<RwLock<City>>, // TODO currently this printed as PyCity(city=RwLock { data: City(name=CityName(City.London), addresses={}), poisoned: false, .. })
 }
