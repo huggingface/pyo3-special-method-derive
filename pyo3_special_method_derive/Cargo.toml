@@ -7,5 +7,6 @@ license.workspace = true
 repository.workspace = true
 
 [dependencies]
-pyo3_special_method_derive_macro.workspace = true
+pyo3_special_method_derive_macro = "0.4.2"
+# pyo3_special_method_derive_macro.workspace = true
 pyo3.workspace = true
