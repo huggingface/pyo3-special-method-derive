@@ -1,0 +1,18 @@
+[package]
+name = "pyo3_special_method_derive_example"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+pyo3.workspace = true
+pyo3_special_method_derive_0_21 = {path = "../pyo3_special_method_derive_0_21"}
+log = "0.4"
+env_logger = "0.9"
+
+[lib]
+name = "pyo3_smd_example"
+crate-type = ["cdylib"]
+doc = false
