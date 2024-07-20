@@ -4,7 +4,7 @@ use pyo3::{pyclass, types::PyAnyMethods, Python};
 use pyo3_special_method_derive_0_21::Dict;
 
 #[derive(PartialEq)]
-#[pyclass(eq, eq_int)]
+#[pyclass]
 #[derive(Dict)]
 #[allow(dead_code)]
 enum Tester {

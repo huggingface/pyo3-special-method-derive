@@ -2,7 +2,7 @@ use pyo3::{pyclass, Python};
 use pyo3_special_method_derive_0_21::Getattr;
 
 #[derive(PartialEq)]
-#[pyclass(eq, eq_int)]
+#[pyclass]
 #[derive(Getattr)]
 enum Tester {
     Alpha,

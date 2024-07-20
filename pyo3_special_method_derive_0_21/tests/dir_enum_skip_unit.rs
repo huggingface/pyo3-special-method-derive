@@ -2,7 +2,7 @@ use pyo3::pyclass;
 use pyo3_special_method_derive_0_21::Dir;
 
 #[derive(PartialEq)]
-#[pyclass(eq, eq_int)]
+#[pyclass]
 #[derive(Dir)]
 #[allow(dead_code)]
 enum Tester {
