@@ -444,7 +444,7 @@ pub fn auto_display(input_stream: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(Repr, attributes(pyo3_smd, pyo3_smd_repr pyo3_fmt_no_skip, formatter))]
+#[proc_macro_derive(Repr, attributes(pyo3_smd, pyo3_smd_repr, pyo3_fmt_no_skip, formatter))]
 pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
 
