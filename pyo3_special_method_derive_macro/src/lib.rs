@@ -10,7 +10,7 @@ const ATTR_NAMESPACE: &str = "pyo3_smd";
 const ATTR_NAMESPACE_STR: &str = "pyo3_smd_str";
 const ATTR_NAMESPACE_REPR: &str = "pyo3_smd_repr";
 const ATTR_NAMESPACE_NO_FMT_SKIP: &str = "pyo3_fmt_no_skip";
-const ATTR_NAMESPACE_AUTO_DISPLAY: &str = "auto_display";
+const ATTR_NAMESPACE_FORMATTER: &str = "format";
 
 fn implements_debug(ty: &Ident) -> bool {
     let expanded = quote! {
@@ -249,6 +249,38 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
 /// - To specialze skipping for `__str__`, use the `#[pyo3_smd_str(skip)]` attributes
 /// - For structs, all fields are skipped which are not marked `pub`
 ///
+/// The `formatter` attribute macro, when used to annotate an enum, controls how the type name and variant are formatted.
+/// By default it is `{}.{}`. The format string takes 2 (filled in as name, variant), 1 (filled in as name), or 0 formatters:
+///
+/// ```ignore
+/// use pyo3::pyclass;
+/// use pyo3_special_method_derive::Str;
+/// #[pyclass]
+/// #[derive(Str)]
+/// #[format(fmt = "{}.{}")]
+/// enum Person {
+///     Alive,
+///     Dead
+/// }
+/// ```
+///
+/// The `formatter` attribute macro, when used to annotate an enum, controls how the type name and fields are formatted.
+/// By default it is `{}({})`. The format string takes 2 (filled in as name, fields), 1 (filled in as name), or 0 formatters:
+///
+/// ```ignore
+/// use pyo3::pyclass;
+/// use pyo3_special_method_derive::Str;
+/// #[pyclass]
+/// #[derive(Str)]
+/// #[format(fmt = "{}({})")]
+/// struct Mountain {
+///     pub height: usize,
+/// }
+/// ```
+///
+/// - A struct field may be annotated with `#[format(fmt = ...)]` where the format string can take 1 (field) or 0 formatters.
+/// - An enum variant may be annotated with `#[format(fmt = ...)]` where the format string can take 1 (variant) or 0 formatters.
+///
 /// ## Example
 /// ```ignore
 /// use pyo3::pyclass;
@@ -262,14 +294,17 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(Str, attributes(pyo3_smd, pyo3_smd_str, pyo3_fmt_no_skip))]
+#[proc_macro_derive(Str, attributes(pyo3_smd, pyo3_smd_str, pyo3_fmt_no_skip, format))]
 pub fn str_derive(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
 
     // Get the name of the struct
     let name = &input.ident;
 
-    let display_derive_body = impl_formatter(&input, DeriveType::ForAutoDisplay);
+    let display_derive_body = match impl_formatter(&input, DeriveType::ForAutoDisplay) {
+        Ok(x) => x,
+        Err(e) => e.into_compile_error(),
+    };
 
     let expanded = quote! {
         #display_derive_body
@@ -290,26 +325,61 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 ///
 /// This has the same requirements and behavior of [`Str`].
 ///
+/// The `formatter` attribute macro, when used to annotate an enum, controls how the type name and variant are formatted.
+/// By default it is `{}.{}`. The format string takes 2 (filled in as name, variant), 1 (filled in as name), or 0 formatters:
+///
+/// ```ignore
+/// use pyo3_special_method_derive::AutoDisplay;
+/// #[derive(AutoDisplay)]
+/// #[format(fmt = "{}.{}")]
+/// enum Person {
+///     Alive,
+///     Dead
+/// }
+/// ```
+///
+/// The `formatter` attribute macro, when used to annotate an enum, controls how the type name and fields are formatted.
+/// By default it is `{}({})`. The format string takes 2 (filled in as name, fields), 1 (filled in as name), or 0 formatters:
+///
+/// ```ignore
+/// use pyo3_special_method_derive::AutoDisplay;
+/// #[derive(AutoDisplay)]
+/// #[format(fmt = "{}({})")]
+/// struct Mountain {
+///     pub height: usize,
+/// }
+/// ```
+///
+/// - A struct field may be annotated with `#[format(fmt = ...)]` where the format string can take 1 (field) or 0 formatters.
+/// - An enum variant may be annotated with `#[format(fmt = ...)]` where the format string can take 1 (variant) or 0 formatters.
+///
 /// ## Example
+///
+/// The `formatter` also has other uses, outlined below:
+///
 /// ```ignore
 /// use pyo3_special_method_derive::AutoDisplay;
 /// #[derive(AutoDisplay)]
 /// struct Person {
 ///     pub name: String,
 ///     address: String,
-///     #[auto_display(skip)]
+///     #[format(skip)]
 ///     pub phone_number: String,
-///     #[auto_display] // -> force display of private field
+///     #[format] // -> force display of private field
 ///     hash: u32,
 /// }
 /// ```
-#[proc_macro_derive(AutoDisplay, attributes(pyo3_smd, pyo3_smd_str, auto_display))]
+#[proc_macro_derive(AutoDisplay, attributes(pyo3_smd, pyo3_smd_str, format))]
 pub fn auto_display(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
     let name = &input.ident;
 
-    // let attr = find_display_attribute(&parsed_input.attrs);
     let display_debug_derive_body = impl_formatter(&input, DeriveType::ForAutoDisplay);
+
+    let display_debug_derive_body = match display_debug_derive_body {
+        Ok(x) => x,
+        Err(e) => e.into_compile_error(),
+    };
 
     if implements_display(name) {
         TokenStream::from(display_debug_derive_body)
@@ -339,6 +409,36 @@ pub fn auto_display(input_stream: TokenStream) -> TokenStream {
 /// - To specialze skipping for `__repr__`, use the `#[pyo3_smd_repr(skip)]` attributes
 /// - For structs, all fields are skipped which are not marked `pub`
 ///
+/// The `formatter` attribute macro, when used to annotate an enum, controls how the type name and variant are formatted.
+/// By default it is `{}.{}`. The format string takes 2 (filled in as name, variant), 1 (filled in as name), or 0 formatters:
+///
+/// ```ignore
+/// use pyo3::pyclass;
+/// use pyo3_special_method_derive::Repr;
+/// #[pyclass]
+/// #[format(fmt = "{}.{}")]
+/// enum Person {
+///     Alive,
+///     Dead
+/// }
+/// ```
+///
+/// The `formatter` attribute macro, when used to annotate an enum, controls how the type name and fields are formatted.
+/// By default it is `{}({})`. The format string takes 2 (filled in as name, fields), 1 (filled in as name), or 0 formatters:
+///
+/// ```ignore
+/// use pyo3::pyclass;
+/// use pyo3_special_method_derive::Repr;
+/// #[pyclass]
+/// #[format(fmt = "{}({})")]
+/// struct Mountain {
+///     pub height: usize,
+/// }
+/// ```
+///
+/// - A struct field may be annotated with `#[format(fmt = ...)]` where the format string can take 1 (field) or 0 formatters.
+/// - An enum variant may be annotated with `#[format(fmt = ...)]` where the format string can take 1 (variant) or 0 formatters.
+///
 /// ## Example
 /// ```ignore
 /// use pyo3::pyclass;
@@ -352,7 +452,7 @@ pub fn auto_display(input_stream: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(Repr, attributes(pyo3_smd, pyo3_smd_repr))]
+#[proc_macro_derive(Repr, attributes(pyo3_smd, pyo3_smd_repr, pyo3_fmt_no_skip, format))]
 pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
 
@@ -360,6 +460,11 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
     let name = &input.ident;
 
     let display_debug_derive_body = impl_formatter(&input, DeriveType::ForAutoDebug);
+
+    let display_debug_derive_body = match display_debug_derive_body {
+        Ok(x) => x,
+        Err(e) => e.into_compile_error(),
+    };
 
     let expanded = quote! {
         #display_debug_derive_body
@@ -380,6 +485,38 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
 ///
 /// This has the same requirements and behavior of [`Repr`].
 ///
+/// The `formatter` attribute macro, when used to annotate an enum, controls how the type name is formatted.
+/// By default it is `{}.{}`. The format string takes 2 (filled in as name, variant), 1 (filled in as name), or 0 formatters:
+///
+/// ```ignore
+/// use pyo3_special_method_derive::AutoDebug;
+/// #[derive(AutoDebug)]
+/// #[format(fmt = "{}.{}")]
+/// enum Person {
+///     Alive,
+///     Dead
+/// }
+/// ```
+///
+/// The `formatter` attribute macro, when used to annotate an enum, controls how the type name and fields are formatted.
+/// By default it is `{}({})`. The format string takes 2 (filled in as name, fields), 1 (filled in as name), or 0 formatters:
+///
+/// ```ignore
+/// use pyo3_special_method_derive::AutoDebug;
+/// #[derive(AutoDebug)]
+/// #[format(fmt = "{}({})")]
+/// struct Mountain {
+///     pub height: usize,
+/// }
+/// ```
+///
+/// - A struct field may be annotated with `#[format(fmt = ...)]` where the format string can take 1 (field) or 0 formatters.
+/// - An enum variant may be annotated with `#[format(fmt = ...)]` where the format string can take 1 (variant) or 0 formatters.
+///
+/// ## Example
+///
+/// The `auto_debug` also has other uses, outlined below:
+///
 /// ## Example
 /// ```ignore
 /// use pyo3_special_method_derive::AutoDebug;
@@ -391,12 +528,17 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(AutoDebug, attributes(pyo3_smd, pyo3_smd_str))]
+#[proc_macro_derive(AutoDebug, attributes(pyo3_smd, pyo3_smd_repr, format))]
 pub fn auto_debug(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
     let name = &input.ident;
 
     let display_debug_derive_body = impl_formatter(&input, DeriveType::ForAutoDebug);
+
+    let display_debug_derive_body = match display_debug_derive_body {
+        Ok(x) => x,
+        Err(e) => e.into_compile_error(),
+    };
 
     if implements_debug(name) {
         TokenStream::from(display_debug_derive_body)
