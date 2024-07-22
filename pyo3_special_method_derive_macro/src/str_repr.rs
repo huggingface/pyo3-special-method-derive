@@ -5,6 +5,7 @@ use crate::{
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::parse::{Parse, ParseStream};
+use syn::spanned::Spanned;
 use syn::{Attribute, DeriveInput, Fields, Ident, LitStr, Token, Visibility};
 macro_rules! create_body {
     ($input:expr, $ident:expr, $is_repr:expr) => {
@@ -17,7 +18,7 @@ macro_rules! create_body {
             }
             syn::Data::Union(u) => {
                 let error = syn::Error::new_spanned(u.union_token, "Unions are not supported");
-                return proc_macro2::TokenStream::from(error.into_compile_error());
+                return Ok(proc_macro2::TokenStream::from(error.into_compile_error()));
             }
         }
     };
@@ -33,40 +34,39 @@ pub(crate) enum DeriveType {
 }
 
 // Internal function to generate impls of the custom trait: `ExtensionRepr|ExtensionStr{ident}`
-pub(crate) fn impl_formatter(input: &DeriveInput, ty: DeriveType) -> proc_macro2::TokenStream {
+pub(crate) fn impl_formatter(
+    input: &DeriveInput,
+    ty: DeriveType,
+) -> syn::Result<proc_macro2::TokenStream> {
     // Get the name of the struct
     let ident = &input.ident;
     // Determine if the implementation is for a "repr" type
     let is_repr = matches!(ty, DeriveType::ForAutoDebug);
 
     // Create body for display and debug
-    let body_display = create_body!(input, ident, is_repr);
-    let body_debug = create_body!(input, ident, is_repr);
+    let body_display = create_body!(input, ident, is_repr)?;
+    let body_debug = create_body!(input, ident, is_repr)?;
 
     // Determine which traits to implement
     match ty {
-        DeriveType::ForAutoDisplay => {
-            quote! {
-                impl pyo3_special_method_derive::PyDisplay for #ident {
-                    fn fmt_display(&self) -> String {
-                        use pyo3_special_method_derive::PyDisplay;
-                        #body_display
-                        repr
-                    }
+        DeriveType::ForAutoDisplay => Ok(quote! {
+            impl pyo3_special_method_derive::PyDisplay for #ident {
+                fn fmt_display(&self) -> String {
+                    use pyo3_special_method_derive::PyDisplay;
+                    #body_display
+                    repr
                 }
             }
-        }
-        DeriveType::ForAutoDebug => {
-            quote! {
-                impl pyo3_special_method_derive::PyDebug for #ident {
-                    fn fmt_debug(&self) -> String {
-                        use pyo3_special_method_derive::PyDebug;
-                        #body_debug
-                        repr
-                    }
+        }),
+        DeriveType::ForAutoDebug => Ok(quote! {
+            impl pyo3_special_method_derive::PyDebug for #ident {
+                fn fmt_debug(&self) -> String {
+                    use pyo3_special_method_derive::PyDebug;
+                    #body_debug
+                    repr
                 }
             }
-        }
+        }),
     }
 }
 
@@ -75,7 +75,7 @@ fn generate_fmt_impl_for_struct(
     name: &Ident,
     is_repr: bool,
     string_formatter: Option<&Vec<Attribute>>,
-) -> proc_macro2::TokenStream {
+) -> syn::Result<proc_macro2::TokenStream> {
     let mut ident_formatter = quote! { #DEFAULT_STRUCT_IDENT_FORMATTER };
     if let Some(attrs) = string_formatter {
         for attr in attrs {
@@ -150,7 +150,7 @@ fn generate_fmt_impl_for_struct(
             let formatters = variant_fmt.to_string().matches("{}").count()
                 - variant_fmt.to_string().matches("{{}}").count();
             if formatters > 1 {
-                panic!("Specify 1 (variant), or 0 formatters in the format string.");
+                return Err(syn::Error::new(data_struct.struct_token.span(), "Specify 1 (variant), or 0 formatters in the format string."));
             };
 
             let formatter_str = variant_fmt.to_string();
@@ -159,34 +159,34 @@ fn generate_fmt_impl_for_struct(
 
             let postfix = if i + 1 < fields.len() { ", " } else { "" };
             let formatter = if is_repr { quote! { fmt_debug } } else { quote! { fmt_display } };
-            match &field.ident {
-                Some(ident) => {
-                    if formatters > 0 {
-                        quote! {
-                            repr += &format!(#format_str, stringify!(#ident), self.#ident.#formatter(), #postfix);
-                        }
-                    } else {
-                        quote! {
-                            repr += &format!(#format_str, stringify!(#ident), #postfix);
-                        }
-                    }
-                }
-                None => {
-                    // If the field doesn't have a name, we generate a name based on its index
-                    let index = syn::Index::from(i);
-                    if formatters > 0 {
-                        quote! {
-                            repr += &format!(#format_str, stringify!(#index), self.#index.#formatter(), #postfix);
-                        }
-                    } else {
-                        quote! {
-                            repr += &format!(#format_str, stringify!(#index), #postfix);
-                        }
-                    }
-                }
-            }
+            Ok(match &field.ident {
+                            Some(ident) => {
+                                if formatters > 0 {
+                                    quote! {
+                                        repr += &format!(#format_str, stringify!(#ident), self.#ident.#formatter(), #postfix);
+                                    }
+                                } else {
+                                    quote! {
+                                        repr += &format!(#format_str, stringify!(#ident), #postfix);
+                                    }
+                                }
+                            }
+                            None => {
+                                // If the field doesn't have a name, we generate a name based on its index
+                                let index = syn::Index::from(i);
+                                if formatters > 0 {
+                                    quote! {
+                                        repr += &format!(#format_str, stringify!(#index), self.#index.#formatter(), #postfix);
+                                    }
+                                } else {
+                                    quote! {
+                                        repr += &format!(#format_str, stringify!(#index), #postfix);
+                                    }
+                                }
+                            }
+                        })
         })
-        .collect::<Vec<_>>();
+        .collect::<syn::Result<Vec<_>>>()?;
 
     // Handle any escaped {}
     let formatters = ident_formatter.to_string().matches("{}").count()
@@ -198,15 +198,18 @@ fn generate_fmt_impl_for_struct(
     } else if formatters == 0 {
         quote! { format!(#ident_formatter) }
     } else {
-        panic!("Specify 2 (name, repr), 1 (name), or 0 formatters in the format string.")
+        return Err(syn::Error::new(
+            data_struct.struct_token.span(),
+            "Specify 2 (name, repr), 1 (name), or 0 formatters in the format string.",
+        ));
     };
 
-    quote! {
+    Ok(quote! {
         let mut repr = "".to_string();
         #(#field_fmts)*
 
         let repr = #ident_formatter;
-    }
+    })
 }
 
 // Define a struct to hold the parsed tokens
@@ -258,7 +261,7 @@ fn generate_fmt_impl_for_enum(
     name: &Ident,
     is_repr: bool,
     string_formatter: Option<&Vec<Attribute>>,
-) -> proc_macro2::TokenStream {
+) -> syn::Result<proc_macro2::TokenStream> {
     let variants = data_enum.variants.iter().collect::<Vec<_>>();
     let mut ident_formatter = quote! { #DEFAULT_ENUM_IDENT_FORMATTER };
     if let Some(attrs) = string_formatter {
@@ -320,10 +323,10 @@ fn generate_fmt_impl_for_enum(
                 } else if formatters == 0 {
                     quote! { &format!(#variant_fmt) }
                 } else {
-                    panic!("Specify 1 (variant), or 0 formatters in the format string.")
+                    return Err(syn::Error::new(data_enum.enum_token.span(), "Specify 1 (variant), or 0 formatters in the format string."));
                 };
 
-                if !to_skip {
+                Ok(if !to_skip {
                     quote! {
                         Self::#ident => repr += #variant_formatter,
                     }
@@ -331,17 +334,18 @@ fn generate_fmt_impl_for_enum(
                     quote! {
                         Self::#ident => repr += "<variant skipped>",
                     }
-                }
+                })
             }
             syn::Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
                 // Tuple variant with one field
-                if !to_skip {
+                // TODO now that we have AutoDisplay we want this
+                Ok(if !to_skip {
                     quote! { #name::#ident(ref single) => {#ident_formatter;} }
                 } else {
                     quote! {
                         #ident => repr += "<variant skipped>",
                     }
-                }  // TODO now that we have AutoDisplay we want this
+                })
             }
             Fields::Named(fields) => {
                 let mut field_names: Vec<(&Option<Ident>, String, usize)> = Vec::new();
@@ -369,7 +373,7 @@ fn generate_fmt_impl_for_enum(
                     let formatters = variant_fmt.to_string().matches("{}").count()
                         - variant_fmt.to_string().matches("{{}}").count();
                     if formatters > 1 {
-                        panic!("Specify 1 (variant), or 0 formatters in the format string.");
+                        return Err(syn::Error::new(data_enum.enum_token.span(), "Specify 1 (variant), or 0 formatters in the format string."));
                     };
                     let formatter_str = variant_fmt.to_string();
 
@@ -386,7 +390,7 @@ fn generate_fmt_impl_for_enum(
                     }
                 }
                 format_string = format!("{format_string})");
-                if !to_skip {
+                Ok(if !to_skip {
                     let mut names = Vec::new();
                     for (name, _, n_formatters) in field_names.clone() {
                         if n_formatters > 0 {
@@ -411,14 +415,14 @@ fn generate_fmt_impl_for_enum(
                             repr += "<variant skipped>";
                         }
                     }
-                }
+                })
             }
             _ => {
                 // Default case: stringify the variant name
-                quote! {  &format!("{}", stringify!(#ident)); }
+                Ok(quote! {  &format!("{}", stringify!(#ident)); })
             }
         }
-    }).collect::<Vec<_>>();
+    }).collect::<syn::Result<Vec<_>>>()?;
 
     // Handle any escaped {}
     let formatters = ident_formatter.to_string().matches("{}").count()
@@ -430,14 +434,17 @@ fn generate_fmt_impl_for_enum(
     } else if formatters == 0 {
         quote! { format!(#ident_formatter) }
     } else {
-        panic!("Specify 2 (name, repr), 1 (name), or 0 formatters in the format string.")
+        return Err(syn::Error::new(
+            data_enum.enum_token.span(),
+            "Specify 2 (name, repr), 1 (name), or 0 formatters in the format string.",
+        ));
     };
 
-    quote! {
+    Ok(quote! {
         let mut repr = "".to_string();
         match self {
             #(#arms)*
         }
         let repr = #ident_formatter;
-    }
+    })
 }

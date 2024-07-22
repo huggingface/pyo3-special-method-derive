@@ -301,7 +301,10 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
     // Get the name of the struct
     let name = &input.ident;
 
-    let display_derive_body = impl_formatter(&input, DeriveType::ForAutoDisplay);
+    let display_derive_body = match impl_formatter(&input, DeriveType::ForAutoDisplay) {
+        Ok(x) => x,
+        Err(e) => proc_macro2::TokenStream::from(e.into_compile_error()),
+    };
 
     let expanded = quote! {
         #display_derive_body
@@ -372,6 +375,11 @@ pub fn auto_display(input_stream: TokenStream) -> TokenStream {
     let name = &input.ident;
 
     let display_debug_derive_body = impl_formatter(&input, DeriveType::ForAutoDisplay);
+
+    let display_debug_derive_body = match display_debug_derive_body {
+        Ok(x) => x,
+        Err(e) => proc_macro2::TokenStream::from(e.into_compile_error()),
+    };
 
     if implements_display(name) {
         TokenStream::from(display_debug_derive_body)
@@ -453,6 +461,11 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
 
     let display_debug_derive_body = impl_formatter(&input, DeriveType::ForAutoDebug);
 
+    let display_debug_derive_body = match display_debug_derive_body {
+        Ok(x) => x,
+        Err(e) => proc_macro2::TokenStream::from(e.into_compile_error()),
+    };
+
     let expanded = quote! {
         #display_debug_derive_body
 
@@ -521,6 +534,11 @@ pub fn auto_debug(input_stream: TokenStream) -> TokenStream {
     let name = &input.ident;
 
     let display_debug_derive_body = impl_formatter(&input, DeriveType::ForAutoDebug);
+
+    let display_debug_derive_body = match display_debug_derive_body {
+        Ok(x) => x,
+        Err(e) => proc_macro2::TokenStream::from(e.into_compile_error()),
+    };
 
     if implements_debug(name) {
         TokenStream::from(display_debug_derive_body)
