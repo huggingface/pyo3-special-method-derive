@@ -161,15 +161,27 @@ fn generate_fmt_impl_for_struct(
             let formatter = if is_repr { quote! { fmt_debug } } else { quote! { fmt_display } };
             match &field.ident {
                 Some(ident) => {
-                    quote! {
-                        repr += &format!(#format_str, stringify!(#ident), self.#ident.#formatter(), #postfix);
+                    if formatters > 0 {
+                        quote! {
+                            repr += &format!(#format_str, stringify!(#ident), self.#ident.#formatter(), #postfix);
+                        }
+                    } else {
+                        quote! {
+                            repr += &format!(#format_str, stringify!(#ident), #postfix);
+                        }
                     }
                 }
                 None => {
                     // If the field doesn't have a name, we generate a name based on its index
                     let index = syn::Index::from(i);
-                    quote! {
-                        repr += &format!(#format_str, stringify!(#index), self.#index.#formatter(), #postfix);
+                    if formatters > 0 {
+                        quote! {
+                            repr += &format!(#format_str, stringify!(#index), self.#index.#formatter(), #postfix);
+                        }
+                    } else {
+                        quote! {
+                            repr += &format!(#format_str, stringify!(#index), #postfix);
+                        }
                     }
                 }
             }
@@ -332,42 +344,70 @@ fn generate_fmt_impl_for_enum(
                 }  // TODO now that we have AutoDisplay we want this
             }
             Fields::Named(fields) => {
-                let formatters = variant_fmt.to_string().matches("{}").count()
-                    - variant_fmt.to_string().matches("{{}}").count();
-                if formatters > 1 {
-                    panic!("Specify 1 (variant), or 0 formatters in the format string.");
-                };
+                let mut field_names: Vec<(&Option<Ident>, String, usize)> = Vec::new();
+                for field in &fields.named {
+                    let display_attr = {
+                        let mut display_attr = None;
 
-                let field_names: Vec<_> = fields.named.iter().map(|f| &f.ident).collect();
+                        for attr in &field.attrs {
+                            let path = attr.path();
+                            if path.is_ident(ATTR_NAMESPACE_FORMATTER) {
+                                display_attr = Some(attr);
+                            }
+                        }
+
+                        display_attr
+                    };
+
+                    let mut variant_fmt = quote! { #DEFAULT_ELEMENT_FORMATTER };
+                    if let Some(display_attr) = display_attr {
+                        if let Some(formatter) = find_display_attribute(display_attr) {
+                            variant_fmt = formatter;
+                        }
+                    }
+
+                    let formatters = variant_fmt.to_string().matches("{}").count()
+                        - variant_fmt.to_string().matches("{{}}").count();
+                    if formatters > 1 {
+                        panic!("Specify 1 (variant), or 0 formatters in the format string.");
+                    };
+                    let formatter_str = variant_fmt.to_string();
+
+                    field_names.push((&field.ident, formatter_str[1..formatter_str.len()-1].to_string(), formatters));
+                }
+
                 let mut format_string = "{}(".to_string();
                 let formatter = if is_repr { quote! { fmt_debug } } else { quote! { fmt_display } };
-                for (i, name) in field_names.iter().enumerate() {
-                    let formatter_str = variant_fmt.to_string();
+                for (i, (name, formatter, _n_formatters)) in field_names.iter().enumerate() {
                     if i == 0 {
-                        format_string = format!("{format_string}{}={}", name.as_ref().unwrap(), &formatter_str[1..formatter_str.len()-1]);
+                        format_string = format!("{format_string}{}={}", name.as_ref().unwrap(), formatter);
                     } else {
-                        format_string = format!("{format_string}, {}={}", name.as_ref().unwrap(), &formatter_str[1..formatter_str.len()-1]);
+                        format_string = format!("{format_string}, {}={}", name.as_ref().unwrap(), formatter);
                     }
                 }
                 format_string = format!("{format_string})");
                 if !to_skip {
                     let mut names = Vec::new();
-                    for name in field_names.clone() {
-                        names.push(quote! { #name.#formatter() });
+                    for (name, _, n_formatters) in field_names.clone() {
+                        if n_formatters > 0 {
+                            names.push(quote! { #name.#formatter() });
+                        }
                     }
-                    if formatters > 0 {
-                        quote! {
-                            Self::#ident { #(#field_names),* } => repr += &format!(#format_string, stringify!(#ident), #(#names),*),
-                        }
-                    } else {
-                        quote! {
-                            Self::#ident { #(#field_names),* } => repr += &format!(#format_string, stringify!(#ident)),
-                        }
+                    let mut new_field_names = Vec::new();
+                    for (name, _, _) in field_names.clone() {
+                        new_field_names.push(name);
+                    }
+                    quote! {
+                        Self::#ident { #(#new_field_names),* } => repr += &format!(#format_string, stringify!(#ident), #(#names),*),
                     }
                 } else {
+                    let mut names = Vec::new();
+                    for (name, _, _) in field_names.clone() {
+                        names.push(quote! { #name });
+                    }
                     quote! {
-                        Self::#ident { #(#field_names),* } => {
-                            let _ = (#(#field_names),*);
+                        Self::#ident { #(#names),* } => {
+                            let _ = (#(#names),*);
                             repr += "<variant skipped>";
                         }
                     }
