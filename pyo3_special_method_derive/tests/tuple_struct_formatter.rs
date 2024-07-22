@@ -3,10 +3,10 @@ use pyo3_special_method_derive::Str;
 
 #[pyclass]
 #[derive(Str)]
-#[formatter(fmt = "Struct: {}({})")]
+#[format(fmt = "Struct: {}({})")]
 struct Data(
-    #[formatter(fmt = "{}")] pub usize,
-    #[formatter(fmt = "[{}]")] pub f32,
+    #[format(fmt = "{}")] pub usize,
+    #[format(fmt = "[{}]")] pub f32,
 );
 
 #[test]

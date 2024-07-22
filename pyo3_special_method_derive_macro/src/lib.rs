@@ -10,7 +10,7 @@ const ATTR_NAMESPACE: &str = "pyo3_smd";
 const ATTR_NAMESPACE_STR: &str = "pyo3_smd_str";
 const ATTR_NAMESPACE_REPR: &str = "pyo3_smd_repr";
 const ATTR_NAMESPACE_NO_FMT_SKIP: &str = "pyo3_fmt_no_skip";
-const ATTR_NAMESPACE_FORMATTER: &str = "formatter";
+const ATTR_NAMESPACE_FORMATTER: &str = "format";
 
 fn implements_debug(ty: &Ident) -> bool {
     let expanded = quote! {
@@ -257,7 +257,7 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
 /// use pyo3_special_method_derive::Str;
 /// #[pyclass]
 /// #[derive(Str)]
-/// #[formatter(fmt = "{}.{}")]
+/// #[format(fmt = "{}.{}")]
 /// enum Person {
 ///     Alive,
 ///     Dead
@@ -272,14 +272,14 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
 /// use pyo3_special_method_derive::Str;
 /// #[pyclass]
 /// #[derive(Str)]
-/// #[formatter(fmt = "{}({})")]
+/// #[format(fmt = "{}({})")]
 /// struct Mountain {
 ///     pub height: usize,
 /// }
 /// ```
 ///
-/// - A struct field may be annotated with `#[formatter(fmt = ...)]` where the format string can take 1 (field) or 0 formatters.
-/// - An enum variant may be annotated with `#[formatter(fmt = ...)]` where the format string can take 1 (variant) or 0 formatters.
+/// - A struct field may be annotated with `#[format(fmt = ...)]` where the format string can take 1 (field) or 0 formatters.
+/// - An enum variant may be annotated with `#[format(fmt = ...)]` where the format string can take 1 (variant) or 0 formatters.
 ///
 /// ## Example
 /// ```ignore
@@ -294,7 +294,7 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(Str, attributes(pyo3_smd, pyo3_smd_str, pyo3_fmt_no_skip, formatter))]
+#[proc_macro_derive(Str, attributes(pyo3_smd, pyo3_smd_str, pyo3_fmt_no_skip, format))]
 pub fn str_derive(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
 
@@ -328,7 +328,7 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 /// ```ignore
 /// use pyo3_special_method_derive::AutoDisplay;
 /// #[derive(AutoDisplay)]
-/// #[formatter(fmt = "{}.{}")]
+/// #[format(fmt = "{}.{}")]
 /// enum Person {
 ///     Alive,
 ///     Dead
@@ -341,14 +341,14 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 /// ```ignore
 /// use pyo3_special_method_derive::AutoDisplay;
 /// #[derive(AutoDisplay)]
-/// #[formatter(fmt = "{}({})")]
+/// #[format(fmt = "{}({})")]
 /// struct Mountain {
 ///     pub height: usize,
 /// }
 /// ```
 ///
-/// - A struct field may be annotated with `#[formatter(fmt = ...)]` where the format string can take 1 (field) or 0 formatters.
-/// - An enum variant may be annotated with `#[formatter(fmt = ...)]` where the format string can take 1 (variant) or 0 formatters.
+/// - A struct field may be annotated with `#[format(fmt = ...)]` where the format string can take 1 (field) or 0 formatters.
+/// - An enum variant may be annotated with `#[format(fmt = ...)]` where the format string can take 1 (variant) or 0 formatters.
 ///
 /// ## Example
 ///
@@ -360,13 +360,13 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 /// struct Person {
 ///     pub name: String,
 ///     address: String,
-///     #[formatter(skip)]
+///     #[format(skip)]
 ///     pub phone_number: String,
-///     #[formatter] // -> force display of private field
+///     #[format] // -> force display of private field
 ///     hash: u32,
 /// }
 /// ```
-#[proc_macro_derive(AutoDisplay, attributes(pyo3_smd, pyo3_smd_str, formatter))]
+#[proc_macro_derive(AutoDisplay, attributes(pyo3_smd, pyo3_smd_str, format))]
 pub fn auto_display(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
     let name = &input.ident;
@@ -408,7 +408,7 @@ pub fn auto_display(input_stream: TokenStream) -> TokenStream {
 /// use pyo3::pyclass;
 /// use pyo3_special_method_derive::Repr;
 /// #[pyclass]
-/// #[formatter(fmt = "{}.{}")]
+/// #[format(fmt = "{}.{}")]
 /// enum Person {
 ///     Alive,
 ///     Dead
@@ -422,14 +422,14 @@ pub fn auto_display(input_stream: TokenStream) -> TokenStream {
 /// use pyo3::pyclass;
 /// use pyo3_special_method_derive::Repr;
 /// #[pyclass]
-/// #[formatter(fmt = "{}({})")]
+/// #[format(fmt = "{}({})")]
 /// struct Mountain {
 ///     pub height: usize,
 /// }
 /// ```
 ///
-/// - A struct field may be annotated with `#[formatter(fmt = ...)]` where the format string can take 1 (field) or 0 formatters.
-/// - An enum variant may be annotated with `#[formatter(fmt = ...)]` where the format string can take 1 (variant) or 0 formatters.
+/// - A struct field may be annotated with `#[format(fmt = ...)]` where the format string can take 1 (field) or 0 formatters.
+/// - An enum variant may be annotated with `#[format(fmt = ...)]` where the format string can take 1 (variant) or 0 formatters.
 ///
 /// ## Example
 /// ```ignore
@@ -444,7 +444,7 @@ pub fn auto_display(input_stream: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(Repr, attributes(pyo3_smd, pyo3_smd_repr, pyo3_fmt_no_skip, formatter))]
+#[proc_macro_derive(Repr, attributes(pyo3_smd, pyo3_smd_repr, pyo3_fmt_no_skip, format))]
 pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
 
@@ -478,7 +478,7 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
 /// ```ignore
 /// use pyo3_special_method_derive::AutoDebug;
 /// #[derive(AutoDebug)]
-/// #[formatter(fmt = "{}.{}")]
+/// #[format(fmt = "{}.{}")]
 /// enum Person {
 ///     Alive,
 ///     Dead
@@ -491,14 +491,14 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
 /// ```ignore
 /// use pyo3_special_method_derive::AutoDebug;
 /// #[derive(AutoDebug)]
-/// #[formatter(fmt = "{}({})")]
+/// #[format(fmt = "{}({})")]
 /// struct Mountain {
 ///     pub height: usize,
 /// }
 /// ```
 ///
-/// - A struct field may be annotated with `#[formatter(fmt = ...)]` where the format string can take 1 (field) or 0 formatters.
-/// - An enum variant may be annotated with `#[formatter(fmt = ...)]` where the format string can take 1 (variant) or 0 formatters.
+/// - A struct field may be annotated with `#[format(fmt = ...)]` where the format string can take 1 (field) or 0 formatters.
+/// - An enum variant may be annotated with `#[format(fmt = ...)]` where the format string can take 1 (variant) or 0 formatters.
 ///
 /// ## Example
 ///
@@ -515,7 +515,7 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(AutoDebug, attributes(pyo3_smd, pyo3_smd_repr, formatter))]
+#[proc_macro_derive(AutoDebug, attributes(pyo3_smd, pyo3_smd_repr, format))]
 pub fn auto_debug(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
     let name = &input.ident;

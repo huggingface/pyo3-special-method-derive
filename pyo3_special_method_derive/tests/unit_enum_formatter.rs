@@ -3,7 +3,7 @@ use pyo3_special_method_derive::Str;
 
 #[pyclass(eq, eq_int)]
 #[derive(Str, PartialEq)]
-#[formatter(fmt = "Enum: {}.{}")]
+#[format(fmt = "Enum: {}.{}")]
 enum Data {
     Alpha,
 }

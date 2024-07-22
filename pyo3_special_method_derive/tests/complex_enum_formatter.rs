@@ -3,12 +3,12 @@ use pyo3_special_method_derive::Str;
 
 #[pyclass]
 #[derive(Str)]
-#[formatter(fmt = "Enum: {}.{}")]
+#[format(fmt = "Enum: {}.{}")]
 enum Data {
     Alpha {
-        #[formatter(fmt = "A[{}]")]
+        #[format(fmt = "A[{}]")]
         x: usize,
-        #[formatter(fmt = "B[{}]")]
+        #[format(fmt = "B[{}]")]
         y: f32,
     },
 }

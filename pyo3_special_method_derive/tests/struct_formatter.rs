@@ -3,11 +3,11 @@ use pyo3_special_method_derive::Str;
 
 #[pyclass]
 #[derive(Str)]
-#[formatter(fmt = "Struct: {}({})")]
+#[format(fmt = "Struct: {}({})")]
 struct Data {
-    #[formatter(fmt = "{}")]
+    #[format(fmt = "{}")]
     pub x: usize,
-    #[formatter(fmt = "[{}]")]
+    #[format(fmt = "[{}]")]
     pub y: f32,
 }
 
