@@ -1,6 +1,6 @@
 use crate::{
-    ATTR_NAMESPACE, ATTR_NAMESPACE_AUTO_DEBUG, ATTR_NAMESPACE_AUTO_DISPLAY,
-    ATTR_NAMESPACE_NO_FMT_SKIP, ATTR_NAMESPACE_REPR, ATTR_NAMESPACE_STR,
+    ATTR_NAMESPACE, ATTR_NAMESPACE_FORMATTER, ATTR_NAMESPACE_NO_FMT_SKIP, ATTR_NAMESPACE_REPR,
+    ATTR_NAMESPACE_STR,
 };
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -75,15 +75,10 @@ fn generate_fmt_impl_for_struct(
     is_repr: bool,
     string_formatter: Option<&Vec<Attribute>>,
 ) -> proc_macro2::TokenStream {
-    let auto = if is_repr {
-        ATTR_NAMESPACE_AUTO_DEBUG
-    } else {
-        ATTR_NAMESPACE_AUTO_DISPLAY
-    };
     let mut ident_formatter = quote! { #DEFAULT_STRUCT_IDENT_FORMATTER };
     if let Some(attrs) = string_formatter {
         for attr in attrs {
-            if attr.path().is_ident(auto) {
+            if attr.path().is_ident(ATTR_NAMESPACE_FORMATTER) {
                 if let Some(formatter) = find_display_attribute(attr) {
                     ident_formatter = formatter;
                     break;
@@ -104,15 +99,12 @@ fn generate_fmt_impl_for_struct(
             } else {
                 ATTR_NAMESPACE_STR
             };
-            let auto = if is_repr {
-                ATTR_NAMESPACE_AUTO_DEBUG
-            } else {
-                ATTR_NAMESPACE_AUTO_DISPLAY
-            };
 
             for attr in &f.attrs {
                 let path = attr.path();
-                if path.is_ident(ATTR_NAMESPACE) || path.is_ident(auto) || path.is_ident(namespace)
+                if path.is_ident(ATTR_NAMESPACE)
+                    || path.is_ident(ATTR_NAMESPACE_FORMATTER)
+                    || path.is_ident(namespace)
                 {
                     let _ = attr.parse_nested_meta(|meta| {
                         if meta.path.is_ident("skip") {
@@ -224,16 +216,11 @@ fn generate_fmt_impl_for_enum(
     is_repr: bool,
     string_formatter: Option<&Vec<Attribute>>,
 ) -> proc_macro2::TokenStream {
-    let auto = if is_repr {
-        ATTR_NAMESPACE_AUTO_DEBUG
-    } else {
-        ATTR_NAMESPACE_AUTO_DISPLAY
-    };
     let variants = data_enum.variants.iter().collect::<Vec<_>>();
     let mut ident_formatter = quote! { #DEFAULT_ENUM_IDENT_FORMATTER };
     if let Some(attrs) = string_formatter {
         for attr in attrs {
-            if attr.path().is_ident(auto) {
+            if attr.path().is_ident(ATTR_NAMESPACE_FORMATTER) {
                 if let Some(formatter) = find_display_attribute(attr) {
                     ident_formatter = formatter;
                     break;
@@ -253,22 +240,17 @@ fn generate_fmt_impl_for_enum(
             } else {
                 ATTR_NAMESPACE_STR
             };
-            let auto = if is_repr {
-                ATTR_NAMESPACE_AUTO_DEBUG
-            } else {
-                ATTR_NAMESPACE_AUTO_DISPLAY
-            };
 
             for attr in &variant.attrs {
                 let path = attr.path();
-                if path.is_ident(ATTR_NAMESPACE) || path.is_ident(auto) || path.is_ident(namespace) {
+                if path.is_ident(ATTR_NAMESPACE) || path.is_ident(ATTR_NAMESPACE_FORMATTER) || path.is_ident(namespace) {
                     let _ = attr.parse_nested_meta(|meta| {
                         if meta.path.is_ident("skip") {
                             to_skip = true;
                         }
                         Ok(())
                     });
-                    if path.is_ident(auto) {
+                    if path.is_ident(ATTR_NAMESPACE_FORMATTER) {
                         display_attr = Some(attr);
                     }
                 }
@@ -277,7 +259,7 @@ fn generate_fmt_impl_for_enum(
             (to_skip, display_attr)
         };
 
-        let mut variant_fmt = quote! { "{}"};
+        let mut variant_fmt = quote! { "{}" };
         if let Some(display_attr) = display_attr {
             if let Some(formatter) = find_display_attribute(display_attr) {
                 variant_fmt = formatter;

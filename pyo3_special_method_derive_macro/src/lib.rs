@@ -10,8 +10,7 @@ const ATTR_NAMESPACE: &str = "pyo3_smd";
 const ATTR_NAMESPACE_STR: &str = "pyo3_smd_str";
 const ATTR_NAMESPACE_REPR: &str = "pyo3_smd_repr";
 const ATTR_NAMESPACE_NO_FMT_SKIP: &str = "pyo3_fmt_no_skip";
-const ATTR_NAMESPACE_AUTO_DISPLAY: &str = "auto_display";
-const ATTR_NAMESPACE_AUTO_DEBUG: &str = "auto_debug";
+const ATTR_NAMESPACE_FORMATTER: &str = "formatter";
 
 fn implements_debug(ty: &Ident) -> bool {
     let expanded = quote! {
@@ -291,26 +290,26 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 ///
 /// This has the same requirements and behavior of [`Str`].
 ///
-/// The `auto_display` attribute macro, when used to annotate an enum, controls how the type name and variant are formatted.
+/// The `formatter` attribute macro, when used to annotate an enum, controls how the type name and variant are formatted.
 /// By default it is `{}.{}`. The format string takes 2 (filled in as name, variant), 1 (filled in as name), or 0 formatters:
 ///
 /// ```ignore
 /// use pyo3_special_method_derive::AutoDisplay;
 /// #[derive(AutoDisplay)]
-/// #[auto_display(fmt = "{}.{}")]
+/// #[formatter(fmt = "{}.{}")]
 /// enum Person {
 ///     Alive,
 ///     Dead
 /// }
 /// ```
 ///
-/// The `auto_display` attribute macro, when used to annotate an enum, controls how the type name and fields are formatted.
+/// The `formatter` attribute macro, when used to annotate an enum, controls how the type name and fields are formatted.
 /// By default it is `{}({})`. The format string takes 2 (filled in as name, fields), 1 (filled in as name), or 0 formatters:
 ///
 /// ```ignore
 /// use pyo3_special_method_derive::AutoDisplay;
 /// #[derive(AutoDisplay)]
-/// #[auto_display(fmt = "{}({})")]
+/// #[formatter(fmt = "{}({})")]
 /// struct Mountain {
 ///     pub height: usize,
 /// }
@@ -318,7 +317,7 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 ///
 /// ## Example
 ///
-/// The `auto_display` also has other uses, outlined below:
+/// The `formatter` also has other uses, outlined below:
 ///
 /// ```ignore
 /// use pyo3_special_method_derive::AutoDisplay;
@@ -326,14 +325,14 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 /// struct Person {
 ///     pub name: String,
 ///     address: String,
-///     #[auto_display(skip)]
+///     #[formatter(skip)]
 ///     pub phone_number: String,
-///     #[auto_display] // -> force display of private field
+///     #[formatter] // -> force display of private field
 ///     hash: u32,
 /// }
 /// ```
-#[proc_macro_derive(AutoDisplay, attributes(pyo3_smd, pyo3_smd_str, auto_display))]
-pub fn auto_display(input_stream: TokenStream) -> TokenStream {
+#[proc_macro_derive(AutoDisplay, attributes(pyo3_smd, pyo3_smd_str, formatter))]
+pub fn formatter(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
     let name = &input.ident;
 

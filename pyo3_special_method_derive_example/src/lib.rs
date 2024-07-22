@@ -10,12 +10,12 @@ use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 
 #[derive(Clone, AutoDisplay, PartialEq, Eq, Hash, Default, AutoDebug)]
-#[auto_display(fmt = "")] // We don't want CityName(Paris), but directly Paris
+#[formatter(fmt = "")] // We don't want CityName(Paris), but directly Paris
 pub enum CityName {
     Paris,
     #[default]
     London,
-    #[auto_display(fmt = "NYC the best city in the world")]
+    #[formatter(fmt = "NYC the best city in the world")]
     NewYork,
 }
 
@@ -33,7 +33,7 @@ impl FromStr for CityName {
 }
 
 #[derive(Default, AutoDisplay, AutoDebug)]
-#[auto_display(fmt = "{}({})")]
+#[formatter(fmt = "{}({})")]
 pub struct City {
     pub name: CityName,
     addresses: HashMap<String, Arc<RwLock<PyAddress>>>,
