@@ -24,6 +24,7 @@ macro_rules! create_body {
 }
 
 const DEFAULT_ENUM_IDENT_FORMATTER: &str = "{}.{}";
+const DEFAULT_ELEMENT_FORMATTER: &str = "{}";
 const DEFAULT_STRUCT_IDENT_FORMATTER: &str = "{}({})";
 
 pub(crate) enum DeriveType {
@@ -126,19 +127,49 @@ fn generate_fmt_impl_for_struct(
         .iter()
         .enumerate()
         .map(|(i, field)| {
+            let display_attr = {
+                let mut display_attr = None;
+
+                for attr in &field.attrs {
+                    let path = attr.path();
+                    if path.is_ident(ATTR_NAMESPACE_FORMATTER) {
+                        display_attr = Some(attr);
+                    }
+                }
+
+                display_attr
+            };
+
+            let mut variant_fmt = quote! { #DEFAULT_ELEMENT_FORMATTER };
+            if let Some(display_attr) = display_attr {
+                if let Some(formatter) = find_display_attribute(display_attr) {
+                    variant_fmt = formatter;
+                }
+            }
+
+            let formatters = variant_fmt.to_string().matches("{}").count()
+                - variant_fmt.to_string().matches("{{}}").count();
+            if formatters > 1 {
+                panic!("Specify 1 (variant), or 0 formatters in the format string.");
+            };
+
+            let formatter_str = variant_fmt.to_string();
+
+            let format_str = format!("{{}}={}{{}}", &formatter_str[1..formatter_str.len()-1]);
+
             let postfix = if i + 1 < fields.len() { ", " } else { "" };
             let formatter = if is_repr { quote! { fmt_debug } } else { quote! { fmt_display } };
             match &field.ident {
                 Some(ident) => {
                     quote! {
-                        repr += &format!("{}={}{}", stringify!(#ident), self.#ident.#formatter(), #postfix);
+                        repr += &format!(#format_str, stringify!(#ident), self.#ident.#formatter(), #postfix);
                     }
                 }
                 None => {
                     // If the field doesn't have a name, we generate a name based on its index
                     let index = syn::Index::from(i);
                     quote! {
-                        repr += &format!("{}={}{}", stringify!(#index), self.#index.#formatter(), #postfix);
+                        repr += &format!(#format_str, stringify!(#index), self.#index.#formatter(), #postfix);
                     }
                 }
             }
@@ -259,32 +290,30 @@ fn generate_fmt_impl_for_enum(
             (to_skip, display_attr)
         };
 
-        let mut variant_fmt = quote! { "{}" };
+        let mut variant_fmt = quote! { #DEFAULT_ELEMENT_FORMATTER };
         if let Some(display_attr) = display_attr {
             if let Some(formatter) = find_display_attribute(display_attr) {
                 variant_fmt = formatter;
             }
         }
 
-
-
         // If {} is not in ident_fmt, we must not format ident.
         // If {} is not in variant_fmt, we don't use stringify! either
         match &variant.fields {
             Fields::Unit => {
-                // Check if the formatter string contains "{}"
-                let variant_fmt = if variant_fmt.to_string().contains("{}") {
-                    quote! {
-                        &format!(#variant_fmt, stringify!(#ident))
-                    }
+                let formatters = variant_fmt.to_string().matches("{}").count()
+                    - variant_fmt.to_string().matches("{{}}").count();
+                let variant_formatter = if formatters == 1 {
+                    quote! { &format!(#variant_fmt, stringify!(#ident)) }
+                } else if formatters == 0 {
+                    quote! { &format!(#variant_fmt) }
                 } else {
-                    quote! {
-                        &format!("\"{}\"", #variant_fmt)
-                    }
+                    panic!("Specify 1 (variant), or 0 formatters in the format string.")
                 };
+
                 if !to_skip {
                     quote! {
-                        Self::#ident => repr += #variant_fmt,
+                        Self::#ident => repr += #variant_formatter,
                     }
                 } else {
                     quote! {
@@ -303,14 +332,21 @@ fn generate_fmt_impl_for_enum(
                 }  // TODO now that we have AutoDisplay we want this
             }
             Fields::Named(fields) => {
+                let formatters = variant_fmt.to_string().matches("{}").count()
+                    - variant_fmt.to_string().matches("{{}}").count();
+                if formatters > 1 {
+                    panic!("Specify 1 (variant), or 0 formatters in the format string.");
+                };
+
                 let field_names: Vec<_> = fields.named.iter().map(|f| &f.ident).collect();
                 let mut format_string = "{}(".to_string();
                 let formatter = if is_repr { quote! { fmt_debug } } else { quote! { fmt_display } };
                 for (i, name) in field_names.iter().enumerate() {
+                    let formatter_str = variant_fmt.to_string();
                     if i == 0 {
-                        format_string = format!("{format_string}{}={{}}", name.as_ref().unwrap());
+                        format_string = format!("{format_string}{}={}", name.as_ref().unwrap(), &formatter_str[1..formatter_str.len()-1]);
                     } else {
-                        format_string = format!("{format_string}, {}={{}}", name.as_ref().unwrap());
+                        format_string = format!("{format_string}, {}={}", name.as_ref().unwrap(), &formatter_str[1..formatter_str.len()-1]);
                     }
                 }
                 format_string = format!("{format_string})");
@@ -319,8 +355,14 @@ fn generate_fmt_impl_for_enum(
                     for name in field_names.clone() {
                         names.push(quote! { #name.#formatter() });
                     }
-                    quote! {
-                        Self::#ident { #(#field_names),* } => repr += &format!(#format_string, stringify!(#ident), #(#names),*),
+                    if formatters > 0 {
+                        quote! {
+                            Self::#ident { #(#field_names),* } => repr += &format!(#format_string, stringify!(#ident), #(#names),*),
+                        }
+                    } else {
+                        quote! {
+                            Self::#ident { #(#field_names),* } => repr += &format!(#format_string, stringify!(#ident)),
+                        }
                     }
                 } else {
                     quote! {
