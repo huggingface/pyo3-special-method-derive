@@ -33,7 +33,7 @@ impl FromStr for CityName {
 }
 
 #[derive(Default, AutoDisplay, AutoDebug)]
-#[auto_display(fmt = "{}")]
+#[auto_display(fmt = "{}({})")]
 pub struct City {
     pub name: CityName,
     addresses: HashMap<String, Arc<RwLock<PyAddress>>>,

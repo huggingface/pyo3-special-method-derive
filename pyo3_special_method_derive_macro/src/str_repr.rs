@@ -1,6 +1,6 @@
 use crate::{
-    ATTR_NAMESPACE, ATTR_NAMESPACE_AUTO_DISPLAY, ATTR_NAMESPACE_NO_FMT_SKIP, ATTR_NAMESPACE_REPR,
-    ATTR_NAMESPACE_STR,
+    ATTR_NAMESPACE, ATTR_NAMESPACE_AUTO_DEBUG, ATTR_NAMESPACE_AUTO_DISPLAY,
+    ATTR_NAMESPACE_NO_FMT_SKIP, ATTR_NAMESPACE_REPR, ATTR_NAMESPACE_STR,
 };
 use proc_macro2::TokenStream;
 use quote::quote;
@@ -9,7 +9,9 @@ use syn::{Attribute, DeriveInput, Fields, Ident, LitStr, Token, Visibility};
 macro_rules! create_body {
     ($input:expr, $ident:expr, $is_repr:expr) => {
         match &$input.data {
-            syn::Data::Struct(s) => generate_fmt_impl_for_struct(s, $ident, $is_repr),
+            syn::Data::Struct(s) => {
+                generate_fmt_impl_for_struct(s, $ident, $is_repr, Some(&$input.attrs))
+            }
             syn::Data::Enum(e) => {
                 generate_fmt_impl_for_enum(e, $ident, $is_repr, Some(&$input.attrs))
             }
@@ -20,6 +22,9 @@ macro_rules! create_body {
         }
     };
 }
+
+const DEFAULT_ENUM_IDENT_FORMATTER: &str = "{}.{}";
+const DEFAULT_STRUCT_IDENT_FORMATTER: &str = "{}({})";
 
 pub(crate) enum DeriveType {
     ForAutoDisplay,
@@ -68,7 +73,26 @@ fn generate_fmt_impl_for_struct(
     data_struct: &syn::DataStruct,
     name: &Ident,
     is_repr: bool,
+    string_formatter: Option<&Vec<Attribute>>,
 ) -> proc_macro2::TokenStream {
+    let auto = if is_repr {
+        ATTR_NAMESPACE_AUTO_DEBUG
+    } else {
+        ATTR_NAMESPACE_AUTO_DISPLAY
+    };
+    let mut ident_formatter = quote! { #DEFAULT_STRUCT_IDENT_FORMATTER };
+    if let Some(attrs) = string_formatter {
+        for attr in attrs {
+            if attr.path().is_ident(auto) {
+                if let Some(formatter) = find_display_attribute(attr) {
+                    ident_formatter = formatter;
+                    break;
+                }
+                break;
+            }
+        }
+    }
+
     let fields = &data_struct.fields;
     let fields = fields
         .iter()
@@ -80,12 +104,15 @@ fn generate_fmt_impl_for_struct(
             } else {
                 ATTR_NAMESPACE_STR
             };
+            let auto = if is_repr {
+                ATTR_NAMESPACE_AUTO_DEBUG
+            } else {
+                ATTR_NAMESPACE_AUTO_DISPLAY
+            };
 
             for attr in &f.attrs {
                 let path = attr.path();
-                if path.is_ident(ATTR_NAMESPACE)
-                    || path.is_ident(ATTR_NAMESPACE_AUTO_DISPLAY)
-                    || path.is_ident(namespace)
+                if path.is_ident(ATTR_NAMESPACE) || path.is_ident(auto) || path.is_ident(namespace)
                 {
                     let _ = attr.parse_nested_meta(|meta| {
                         if meta.path.is_ident("skip") {
@@ -125,11 +152,25 @@ fn generate_fmt_impl_for_struct(
             }
         })
         .collect::<Vec<_>>();
+
+    // Handle any escaped {}
+    let formatters = ident_formatter.to_string().matches("{}").count()
+        - ident_formatter.to_string().matches("{{}}").count();
+    let ident_formatter = if formatters == 2 {
+        quote! { format!(#ident_formatter, stringify!(#name), repr) }
+    } else if formatters == 1 {
+        quote! { format!(#ident_formatter, stringify!(#name)) }
+    } else if formatters == 0 {
+        quote! { format!(#ident_formatter) }
+    } else {
+        panic!("Specify 2 (name, repr), 1 (name), or 0 formatters in the format string.")
+    };
+
     quote! {
         let mut repr = "".to_string();
-        repr += &format!("{}(", stringify!(#name));
         #(#field_fmts)*
-        repr += ")";
+
+        let repr = #ident_formatter;
     }
 }
 
@@ -183,11 +224,16 @@ fn generate_fmt_impl_for_enum(
     is_repr: bool,
     string_formatter: Option<&Vec<Attribute>>,
 ) -> proc_macro2::TokenStream {
+    let auto = if is_repr {
+        ATTR_NAMESPACE_AUTO_DEBUG
+    } else {
+        ATTR_NAMESPACE_AUTO_DISPLAY
+    };
     let variants = data_enum.variants.iter().collect::<Vec<_>>();
-    let mut ident_formatter = quote! { "{}."};
+    let mut ident_formatter = quote! { #DEFAULT_ENUM_IDENT_FORMATTER };
     if let Some(attrs) = string_formatter {
         for attr in attrs {
-            if attr.path().is_ident(ATTR_NAMESPACE_AUTO_DISPLAY) {
+            if attr.path().is_ident(auto) {
                 if let Some(formatter) = find_display_attribute(attr) {
                     ident_formatter = formatter;
                     break;
@@ -196,19 +242,6 @@ fn generate_fmt_impl_for_enum(
             }
         }
     }
-
-    let fmt_str = ident_formatter.to_string();
-
-    // Check if the formatter string contains "{}"
-    let ident_formatter = if fmt_str.contains("{}") {
-        quote! {
-            &format!(#ident_formatter, stringify!(#name))
-        }
-    } else {
-        quote! {
-            &format!("{}", #ident_formatter)
-        }
-    };
 
     let arms = variants.iter().map(|variant| {
         let ident = &variant.ident;
@@ -220,17 +253,22 @@ fn generate_fmt_impl_for_enum(
             } else {
                 ATTR_NAMESPACE_STR
             };
+            let auto = if is_repr {
+                ATTR_NAMESPACE_AUTO_DEBUG
+            } else {
+                ATTR_NAMESPACE_AUTO_DISPLAY
+            };
 
             for attr in &variant.attrs {
                 let path = attr.path();
-                if path.is_ident(ATTR_NAMESPACE) || path.is_ident(ATTR_NAMESPACE_AUTO_DISPLAY) || path.is_ident(namespace) {
+                if path.is_ident(ATTR_NAMESPACE) || path.is_ident(auto) || path.is_ident(namespace) {
                     let _ = attr.parse_nested_meta(|meta| {
                         if meta.path.is_ident("skip") {
                             to_skip = true;
                         }
                         Ok(())
                     });
-                    if path.is_ident(ATTR_NAMESPACE_AUTO_DISPLAY) {
+                    if path.is_ident(auto) {
                         display_attr = Some(attr);
                     }
                 }
@@ -318,11 +356,24 @@ fn generate_fmt_impl_for_enum(
         }
     }).collect::<Vec<_>>();
 
+    // Handle any escaped {}
+    let formatters = ident_formatter.to_string().matches("{}").count()
+        - ident_formatter.to_string().matches("{{}}").count();
+    let ident_formatter = if formatters == 2 {
+        quote! { format!(#ident_formatter, stringify!(#name), repr) }
+    } else if formatters == 1 {
+        quote! { format!(#ident_formatter, stringify!(#name)) }
+    } else if formatters == 0 {
+        quote! { format!(#ident_formatter) }
+    } else {
+        panic!("Specify 2 (name, repr), 1 (name), or 0 formatters in the format string.")
+    };
+
     quote! {
         let mut repr = "".to_string();
-        repr += #ident_formatter;
         match self {
             #(#arms)*
         }
+        let repr = #ident_formatter;
     }
 }

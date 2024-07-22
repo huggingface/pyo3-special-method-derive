@@ -11,6 +11,7 @@ const ATTR_NAMESPACE_STR: &str = "pyo3_smd_str";
 const ATTR_NAMESPACE_REPR: &str = "pyo3_smd_repr";
 const ATTR_NAMESPACE_NO_FMT_SKIP: &str = "pyo3_fmt_no_skip";
 const ATTR_NAMESPACE_AUTO_DISPLAY: &str = "auto_display";
+const ATTR_NAMESPACE_AUTO_DEBUG: &str = "auto_debug";
 
 fn implements_debug(ty: &Ident) -> bool {
     let expanded = quote! {
@@ -290,7 +291,35 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 ///
 /// This has the same requirements and behavior of [`Str`].
 ///
+/// The `auto_display` attribute macro, when used to annotate an enum, controls how the type name and variant are formatted.
+/// By default it is `{}.{}`. The format string takes 2 (filled in as name, variant), 1 (filled in as name), or 0 formatters:
+///
+/// ```ignore
+/// use pyo3_special_method_derive::AutoDisplay;
+/// #[derive(AutoDisplay)]
+/// #[auto_display(fmt = "{}.{}")]
+/// enum Person {
+///     Alive,
+///     Dead
+/// }
+/// ```
+///
+/// The `auto_display` attribute macro, when used to annotate an enum, controls how the type name and fields are formatted.
+/// By default it is `{}({})`. The format string takes 2 (filled in as name, fields), 1 (filled in as name), or 0 formatters:
+///
+/// ```ignore
+/// use pyo3_special_method_derive::AutoDisplay;
+/// #[derive(AutoDisplay)]
+/// #[auto_display(fmt = "{}({})")]
+/// struct Mountain {
+///     pub height: usize,
+/// }
+/// ```
+///
 /// ## Example
+///
+/// The `auto_display` also has other uses, outlined below:
+///
 /// ```ignore
 /// use pyo3_special_method_derive::AutoDisplay;
 /// #[derive(AutoDisplay)]
@@ -308,7 +337,6 @@ pub fn auto_display(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
     let name = &input.ident;
 
-    // let attr = find_display_attribute(&parsed_input.attrs);
     let display_debug_derive_body = impl_formatter(&input, DeriveType::ForAutoDisplay);
 
     if implements_display(name) {
@@ -380,6 +408,35 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
 ///
 /// This has the same requirements and behavior of [`Repr`].
 ///
+/// The `auto_debug` attribute macro, when used to annotate an enum, controls how the type name is formatted.
+/// By default it is `{}.{}`. The format string takes 2 (filled in as name, variant), 1 (filled in as name), or 0 formatters:
+///
+/// ```ignore
+/// use pyo3_special_method_derive::AutoDebug;
+/// #[derive(AutoDebug)]
+/// #[auto_debug(fmt = "{}.{}")]
+/// enum Person {
+///     Alive,
+///     Dead
+/// }
+/// ```
+///
+/// The `auto_debug` attribute macro, when used to annotate an enum, controls how the type name and fields are formatted.
+/// By default it is `{}({})`. The format string takes 2 (filled in as name, fields), 1 (filled in as name), or 0 formatters:
+///
+/// ```ignore
+/// use pyo3_special_method_derive::AutoDebug;
+/// #[derive(AutoDebug)]
+/// #[auto_debug(fmt = "{}({})")]
+/// struct Mountain {
+///     pub height: usize,
+/// }
+/// ```
+///
+/// ## Example
+///
+/// The `auto_debug` also has other uses, outlined below:
+///
 /// ## Example
 /// ```ignore
 /// use pyo3_special_method_derive::AutoDebug;
@@ -391,7 +448,7 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(AutoDebug, attributes(pyo3_smd, pyo3_smd_str))]
+#[proc_macro_derive(AutoDebug, attributes(pyo3_smd, pyo3_smd_repr, auto_debug))]
 pub fn auto_debug(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
     let name = &input.ident;
