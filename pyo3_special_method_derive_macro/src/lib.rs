@@ -303,7 +303,7 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 
     let display_derive_body = match impl_formatter(&input, DeriveType::ForAutoDisplay) {
         Ok(x) => x,
-        Err(e) => proc_macro2::TokenStream::from(e.into_compile_error()),
+        Err(e) => e.into_compile_error(),
     };
 
     let expanded = quote! {
@@ -378,7 +378,7 @@ pub fn auto_display(input_stream: TokenStream) -> TokenStream {
 
     let display_debug_derive_body = match display_debug_derive_body {
         Ok(x) => x,
-        Err(e) => proc_macro2::TokenStream::from(e.into_compile_error()),
+        Err(e) => e.into_compile_error(),
     };
 
     if implements_display(name) {
@@ -463,7 +463,7 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
 
     let display_debug_derive_body = match display_debug_derive_body {
         Ok(x) => x,
-        Err(e) => proc_macro2::TokenStream::from(e.into_compile_error()),
+        Err(e) => e.into_compile_error(),
     };
 
     let expanded = quote! {
@@ -537,7 +537,7 @@ pub fn auto_debug(input_stream: TokenStream) -> TokenStream {
 
     let display_debug_derive_body = match display_debug_derive_body {
         Ok(x) => x,
-        Err(e) => proc_macro2::TokenStream::from(e.into_compile_error()),
+        Err(e) => e.into_compile_error(),
     };
 
     if implements_debug(name) {
