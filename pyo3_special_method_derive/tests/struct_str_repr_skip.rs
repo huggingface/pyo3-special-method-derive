@@ -7,7 +7,7 @@ use pyo3_special_method_derive::{Dir, Repr, Str};
 struct WithFields {
     pub dora: u32,
     pub my: String,
-    #[skip(Dir, Str, Repr)]
+    #[skip(All)]
     pub name: f32,
 }
 

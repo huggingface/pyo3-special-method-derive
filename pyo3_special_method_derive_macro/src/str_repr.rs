@@ -1,4 +1,4 @@
-use crate::{ATTR_NAMESPACE_FORMATTER, ATTR_NAMESPACE_NO_FMT_SKIP, ATTR_SKIP_NAMESPACE};
+use crate::{ATTR_NAMESPACE_FORMATTER, ATTR_NAMESPACE_NO_FMT_SKIP, ATTR_SKIP_NAMESPACE, SKIP_ALL};
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::parse::{Parse, ParseStream};
@@ -100,7 +100,7 @@ fn generate_fmt_impl_for_struct(
                 if attr.path().is_ident(ATTR_SKIP_NAMESPACE) {
                     // only parse ATTR_SKIP_NAMESPACE and not [serde] or [default]
                     let _ = attr.parse_nested_meta(|meta| {
-                        to_skip |= meta.path.is_ident(macro_name);
+                        to_skip |= meta.path.is_ident(macro_name) || meta.path.is_ident(SKIP_ALL);
                         Ok(())
                     });
                     break;
@@ -277,7 +277,7 @@ fn generate_fmt_impl_for_enum(
                 let path = attr.path();
                 if path.is_ident(ATTR_SKIP_NAMESPACE)  {
                     let _ = attr.parse_nested_meta(|meta| {
-                        to_skip |= meta.path.is_ident(macro_name);
+                        to_skip |= meta.path.is_ident(macro_name) || meta.path.is_ident(SKIP_ALL);
                         Ok(())
                     });
                     if path.is_ident(ATTR_NAMESPACE_FORMATTER) {

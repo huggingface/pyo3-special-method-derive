@@ -9,6 +9,7 @@ mod str_repr;
 const ATTR_SKIP_NAMESPACE: &str = "skip";
 const ATTR_NAMESPACE_NO_FMT_SKIP: &str = "pyo3_fmt_no_skip";
 const ATTR_NAMESPACE_FORMATTER: &str = "format";
+const SKIP_ALL: &str = "All";
 
 fn implements_debug(ty: &Ident) -> bool {
     let expanded = quote! {
@@ -72,7 +73,8 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
                                 if attr.path().is_ident(ATTR_SKIP_NAMESPACE) {
                                     // only parse ATTR_SKIP_NAMESPACE and not [serde] or [default]
                                     attr.parse_nested_meta(|meta| {
-                                        is_skip |= meta.path.is_ident("Dir");
+                                        is_skip |= meta.path.is_ident("Dir")
+                                            || meta.path.is_ident(SKIP_ALL);
                                         Ok(())
                                     })
                                     .unwrap();
@@ -139,7 +141,7 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
                         if attr.path().is_ident(ATTR_SKIP_NAMESPACE) {
                             // only parse ATTR_SKIP_NAMESPACE and not [serde] or [default]
                             attr.parse_nested_meta(|meta| {
-                                is_skip |= meta.path.is_ident("Dir");
+                                is_skip |= meta.path.is_ident("Dir") || meta.path.is_ident(SKIP_ALL);
                                 Ok(())
                             })
                             .unwrap();
@@ -191,7 +193,8 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
                         if attr.path().is_ident(ATTR_SKIP_NAMESPACE) {
                             // only parse ATTR_SKIP_NAMESPACE and not [serde] or [default]
                             attr.parse_nested_meta(|meta| {
-                                is_skip |= meta.path.is_ident("Dir");
+                                is_skip |=
+                                    meta.path.is_ident("Dir") || meta.path.is_ident(SKIP_ALL);
                                 Ok(())
                             })
                             .unwrap();
@@ -595,7 +598,8 @@ pub fn getattr_derive(input: TokenStream) -> TokenStream {
                                 if attr.path().is_ident(ATTR_SKIP_NAMESPACE) {
                                     // only parse ATTR_SKIP_NAMESPACE and not [serde] or [default]
                                     attr.parse_nested_meta(|meta| {
-                                        is_skip |= meta.path.is_ident("Getattr");
+                                        is_skip |= meta.path.is_ident("Getattr")
+                                            || meta.path.is_ident(SKIP_ALL);
                                         Ok(())
                                     })
                                     .unwrap();
@@ -676,7 +680,7 @@ pub fn getattr_derive(input: TokenStream) -> TokenStream {
                     if attr.path().is_ident(ATTR_SKIP_NAMESPACE) {
                         // only parse ATTR_SKIP_NAMESPACE and not [serde] or [default]
                         attr.parse_nested_meta(|meta| {
-                            is_skip |= meta.path.is_ident("Getattr");
+                            is_skip |= meta.path.is_ident("Getattr") || meta.path.is_ident(SKIP_ALL);
                             Ok(())
                         })
                         .unwrap();
@@ -729,7 +733,7 @@ pub fn getattr_derive(input: TokenStream) -> TokenStream {
                     if attr.path().is_ident(ATTR_SKIP_NAMESPACE) {
                         // only parse ATTR_SKIP_NAMESPACE and not [serde] or [default]
                         attr.parse_nested_meta(|meta| {
-                            is_skip |= meta.path.is_ident("Getattr");
+                            is_skip |= meta.path.is_ident("Getattr") || meta.path.is_ident(SKIP_ALL);
                             Ok(())
                         })
                         .unwrap();
@@ -821,7 +825,8 @@ pub fn dict_derive(input: TokenStream) -> TokenStream {
                                 if attr.path().is_ident(ATTR_SKIP_NAMESPACE) {
                                     // only parse ATTR_SKIP_NAMESPACE and not [serde] or [default]
                                     attr.parse_nested_meta(|meta| {
-                                        is_skip |= meta.path.is_ident("Dict");
+                                        is_skip |= meta.path.is_ident("Dict")
+                                            || meta.path.is_ident(SKIP_ALL);
                                         Ok(())
                                     })
                                     .unwrap();
@@ -902,7 +907,7 @@ pub fn dict_derive(input: TokenStream) -> TokenStream {
                     if attr.path().is_ident(ATTR_SKIP_NAMESPACE) {
                         // only parse ATTR_SKIP_NAMESPACE and not [serde] or [default]
                         attr.parse_nested_meta(|meta| {
-                            is_skip |= meta.path.is_ident("Dict");
+                            is_skip |= meta.path.is_ident("Dict") || meta.path.is_ident(SKIP_ALL);
                             Ok(())
                         })
                         .unwrap();
@@ -949,7 +954,8 @@ pub fn dict_derive(input: TokenStream) -> TokenStream {
                         if attr.path().is_ident(ATTR_SKIP_NAMESPACE) {
                             // only parse ATTR_SKIP_NAMESPACE and not [serde] or [default]
                             attr.parse_nested_meta(|meta| {
-                                is_skip |= meta.path.is_ident("Dict");
+                                is_skip |=
+                                    meta.path.is_ident("Dict") || meta.path.is_ident(SKIP_ALL);
                                 Ok(())
                             })
                             .unwrap();
