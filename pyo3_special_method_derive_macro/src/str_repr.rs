@@ -1,20 +1,17 @@
-use crate::{
-    ATTR_NAMESPACE, ATTR_NAMESPACE_FORMATTER, ATTR_NAMESPACE_NO_FMT_SKIP, ATTR_NAMESPACE_REPR,
-    ATTR_NAMESPACE_STR,
-};
+use crate::{ATTR_NAMESPACE_FORMATTER, ATTR_NAMESPACE_NO_FMT_SKIP, ATTR_SKIP_NAMESPACE};
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::parse::{Parse, ParseStream};
 use syn::spanned::Spanned;
 use syn::{Attribute, DeriveInput, Fields, Ident, LitStr, Token, Visibility};
 macro_rules! create_body {
-    ($input:expr, $ident:expr, $is_repr:expr) => {
+    ($input:expr, $ident:expr, $is_repr:expr, $name:expr) => {
         match &$input.data {
             syn::Data::Struct(s) => {
-                generate_fmt_impl_for_struct(s, $ident, $is_repr, Some(&$input.attrs))
+                generate_fmt_impl_for_struct(s, $ident, $is_repr, Some(&$input.attrs), $name)
             }
             syn::Data::Enum(e) => {
-                generate_fmt_impl_for_enum(e, $ident, $is_repr, Some(&$input.attrs))
+                generate_fmt_impl_for_enum(e, $ident, $is_repr, Some(&$input.attrs), $name)
             }
             syn::Data::Union(u) => {
                 let error = syn::Error::new_spanned(u.union_token, "Unions are not supported");
@@ -37,6 +34,7 @@ pub(crate) enum DeriveType {
 pub(crate) fn impl_formatter(
     input: &DeriveInput,
     ty: DeriveType,
+    name: &str,
 ) -> syn::Result<proc_macro2::TokenStream> {
     // Get the name of the struct
     let ident = &input.ident;
@@ -44,8 +42,8 @@ pub(crate) fn impl_formatter(
     let is_repr = matches!(ty, DeriveType::ForAutoDebug);
 
     // Create body for display and debug
-    let body_display = create_body!(input, ident, is_repr)?;
-    let body_debug = create_body!(input, ident, is_repr)?;
+    let body_display = create_body!(input, ident, is_repr, name)?;
+    let body_debug = create_body!(input, ident, is_repr, name)?;
 
     // Determine which traits to implement
     match ty {
@@ -75,6 +73,7 @@ fn generate_fmt_impl_for_struct(
     name: &Ident,
     is_repr: bool,
     string_formatter: Option<&Vec<Attribute>>,
+    macro_name: &str,
 ) -> syn::Result<proc_macro2::TokenStream> {
     let mut ident_formatter = quote! { #DEFAULT_STRUCT_IDENT_FORMATTER };
     if let Some(attrs) = string_formatter {
@@ -95,22 +94,13 @@ fn generate_fmt_impl_for_struct(
         .filter(|f| {
             // Default `is_skip` based on the field's visibility
             let mut to_skip = !matches!(f.vis, Visibility::Public(_));
-            let namespace = if is_repr {
-                ATTR_NAMESPACE_REPR
-            } else {
-                ATTR_NAMESPACE_STR
-            };
 
             for attr in &f.attrs {
                 let path = attr.path();
-                if path.is_ident(ATTR_NAMESPACE)
-                    || path.is_ident(ATTR_NAMESPACE_FORMATTER)
-                    || path.is_ident(namespace)
-                {
+                if attr.path().is_ident(ATTR_SKIP_NAMESPACE) {
+                    // only parse ATTR_SKIP_NAMESPACE and not [serde] or [default]
                     let _ = attr.parse_nested_meta(|meta| {
-                        if meta.path.is_ident("skip") {
-                            to_skip = true;
-                        }
+                        to_skip |= meta.path.is_ident(macro_name);
                         Ok(())
                     });
                     break;
@@ -261,6 +251,7 @@ fn generate_fmt_impl_for_enum(
     name: &Ident,
     is_repr: bool,
     string_formatter: Option<&Vec<Attribute>>,
+    macro_name: &str,
 ) -> syn::Result<proc_macro2::TokenStream> {
     let variants = data_enum.variants.iter().collect::<Vec<_>>();
     let mut ident_formatter = quote! { #DEFAULT_ENUM_IDENT_FORMATTER };
@@ -281,19 +272,12 @@ fn generate_fmt_impl_for_enum(
         let (to_skip, display_attr) = {
             let mut to_skip = false;
             let mut display_attr = None;
-            let namespace = if is_repr {
-                ATTR_NAMESPACE_REPR
-            } else {
-                ATTR_NAMESPACE_STR
-            };
 
             for attr in &variant.attrs {
                 let path = attr.path();
-                if path.is_ident(ATTR_NAMESPACE) || path.is_ident(ATTR_NAMESPACE_FORMATTER) || path.is_ident(namespace) {
+                if path.is_ident(ATTR_SKIP_NAMESPACE)  {
                     let _ = attr.parse_nested_meta(|meta| {
-                        if meta.path.is_ident("skip") {
-                            to_skip = true;
-                        }
+                        to_skip |= meta.path.is_ident(macro_name);
                         Ok(())
                     });
                     if path.is_ident(ATTR_NAMESPACE_FORMATTER) {

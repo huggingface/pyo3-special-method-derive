@@ -6,9 +6,7 @@ use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Visibility};
 
 mod str_repr;
 
-const ATTR_NAMESPACE: &str = "pyo3_smd";
-const ATTR_NAMESPACE_STR: &str = "pyo3_smd_str";
-const ATTR_NAMESPACE_REPR: &str = "pyo3_smd_repr";
+const ATTR_SKIP_NAMESPACE: &str = "skip";
 const ATTR_NAMESPACE_NO_FMT_SKIP: &str = "pyo3_fmt_no_skip";
 const ATTR_NAMESPACE_FORMATTER: &str = "format";
 
@@ -52,7 +50,7 @@ fn implements_display(ty: &Ident) -> bool {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(Dir, attributes(pyo3_smd))]
+#[proc_macro_derive(Dir, attributes(skip))]
 pub fn dir_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
@@ -71,10 +69,10 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
                         .filter(|f| {
                             !f.attrs.iter().any(|attr| {
                                 let mut is_skip = false;
-                                if attr.path().is_ident(ATTR_NAMESPACE) {
-                                    // only parse ATTR_NAMESPACE and not [serde] or [default]
+                                if attr.path().is_ident(ATTR_SKIP_NAMESPACE) {
+                                    // only parse ATTR_SKIP_NAMESPACE and not [serde] or [default]
                                     attr.parse_nested_meta(|meta| {
-                                        is_skip = meta.path.is_ident("skip");
+                                        is_skip |= meta.path.is_ident("Dir");
                                         Ok(())
                                     })
                                     .unwrap();
@@ -138,9 +136,10 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
                 .filter(|variant| {
                     !variant.attrs.iter().any(|attr| {
                         let mut is_skip = false;
-                        if attr.path().is_ident(ATTR_NAMESPACE) { // only parse ATTR_NAMESPACE and not [serde] or [default]
+                        if attr.path().is_ident(ATTR_SKIP_NAMESPACE) {
+                            // only parse ATTR_SKIP_NAMESPACE and not [serde] or [default]
                             attr.parse_nested_meta(|meta| {
-                                is_skip = meta.path.is_ident("skip");
+                                is_skip |= meta.path.is_ident("Dir");
                                 Ok(())
                             })
                             .unwrap();
@@ -189,10 +188,10 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
                 .filter(|variant| {
                     variant.attrs.iter().any(|attr| {
                         let mut is_skip = false;
-                        if attr.path().is_ident(ATTR_NAMESPACE) {
-                            // only parse ATTR_NAMESPACE and not [serde] or [default]
+                        if attr.path().is_ident(ATTR_SKIP_NAMESPACE) {
+                            // only parse ATTR_SKIP_NAMESPACE and not [serde] or [default]
                             attr.parse_nested_meta(|meta| {
-                                is_skip = meta.path.is_ident("skip");
+                                is_skip |= meta.path.is_ident("Dir");
                                 Ok(())
                             })
                             .unwrap();
@@ -294,14 +293,14 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(Str, attributes(pyo3_smd, pyo3_smd_str, pyo3_fmt_no_skip, format))]
+#[proc_macro_derive(Str, attributes(skip, pyo3_fmt_no_skip, format))]
 pub fn str_derive(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
 
     // Get the name of the struct
     let name = &input.ident;
 
-    let display_derive_body = match impl_formatter(&input, DeriveType::ForAutoDisplay) {
+    let display_derive_body = match impl_formatter(&input, DeriveType::ForAutoDisplay, "Str") {
         Ok(x) => x,
         Err(e) => e.into_compile_error(),
     };
@@ -369,12 +368,13 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 ///     hash: u32,
 /// }
 /// ```
-#[proc_macro_derive(AutoDisplay, attributes(pyo3_smd, pyo3_smd_str, format))]
+#[proc_macro_derive(AutoDisplay, attributes(skip, pyo3_fmt_no_skip, format))]
 pub fn auto_display(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
     let name = &input.ident;
 
-    let display_debug_derive_body = impl_formatter(&input, DeriveType::ForAutoDisplay);
+    let display_debug_derive_body =
+        impl_formatter(&input, DeriveType::ForAutoDisplay, "AutoDisplay");
 
     let display_debug_derive_body = match display_debug_derive_body {
         Ok(x) => x,
@@ -452,14 +452,14 @@ pub fn auto_display(input_stream: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(Repr, attributes(pyo3_smd, pyo3_smd_repr, pyo3_fmt_no_skip, format))]
+#[proc_macro_derive(Repr, attributes(skip, pyo3_fmt_no_skip, format))]
 pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
 
     // Get the name of the struct
     let name = &input.ident;
 
-    let display_debug_derive_body = impl_formatter(&input, DeriveType::ForAutoDebug);
+    let display_debug_derive_body = impl_formatter(&input, DeriveType::ForAutoDebug, "Repr");
 
     let display_debug_derive_body = match display_debug_derive_body {
         Ok(x) => x,
@@ -528,12 +528,12 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(AutoDebug, attributes(pyo3_smd, pyo3_smd_repr, format))]
+#[proc_macro_derive(AutoDebug, attributes(skip, pyo3_fmt_no_skip, format))]
 pub fn auto_debug(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
     let name = &input.ident;
 
-    let display_debug_derive_body = impl_formatter(&input, DeriveType::ForAutoDebug);
+    let display_debug_derive_body = impl_formatter(&input, DeriveType::ForAutoDebug, "AutoDebug");
 
     let display_debug_derive_body = match display_debug_derive_body {
         Ok(x) => x,
@@ -576,7 +576,7 @@ pub fn auto_debug(input_stream: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(Getattr, attributes(pyo3_smd))]
+#[proc_macro_derive(Getattr, attributes(skip))]
 pub fn getattr_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
@@ -594,10 +594,10 @@ pub fn getattr_derive(input: TokenStream) -> TokenStream {
                         .filter(|f| {
                             !f.attrs.iter().any(|attr| {
                                 let mut is_skip = false;
-                                if attr.path().is_ident(ATTR_NAMESPACE) {
-                                    // only parse ATTR_NAMESPACE and not [serde] or [default]
+                                if attr.path().is_ident(ATTR_SKIP_NAMESPACE) {
+                                    // only parse ATTR_SKIP_NAMESPACE and not [serde] or [default]
                                     attr.parse_nested_meta(|meta| {
-                                        is_skip = meta.path.is_ident("skip");
+                                        is_skip |= meta.path.is_ident("Getattr");
                                         Ok(())
                                     })
                                     .unwrap();
@@ -675,9 +675,10 @@ pub fn getattr_derive(input: TokenStream) -> TokenStream {
             .filter(|variant| {
                 !variant.attrs.iter().any(|attr| {
                     let mut is_skip = false;
-                    if attr.path().is_ident(ATTR_NAMESPACE) { // only parse ATTR_NAMESPACE and not [serde] or [default]
+                    if attr.path().is_ident(ATTR_SKIP_NAMESPACE) {
+                        // only parse ATTR_SKIP_NAMESPACE and not [serde] or [default]
                         attr.parse_nested_meta(|meta| {
-                            is_skip = meta.path.is_ident("skip");
+                            is_skip |= meta.path.is_ident("Getattr");
                             Ok(())
                         })
                         .unwrap();
@@ -727,9 +728,10 @@ pub fn getattr_derive(input: TokenStream) -> TokenStream {
             .filter(|variant| {
                 variant.attrs.iter().any(|attr| {
                     let mut is_skip = false;
-                    if attr.path().is_ident(ATTR_NAMESPACE) { // only parse ATTR_NAMESPACE and not [serde] or [default]
+                    if attr.path().is_ident(ATTR_SKIP_NAMESPACE) {
+                        // only parse ATTR_SKIP_NAMESPACE and not [serde] or [default]
                         attr.parse_nested_meta(|meta| {
-                            is_skip = meta.path.is_ident("skip");
+                            is_skip |= meta.path.is_ident("Getattr");
                             Ok(())
                         })
                         .unwrap();
@@ -801,7 +803,7 @@ pub fn getattr_derive(input: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(Dict, attributes(pyo3_smd))]
+#[proc_macro_derive(Dict, attributes(skip))]
 pub fn dict_derive(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
 
@@ -818,10 +820,10 @@ pub fn dict_derive(input: TokenStream) -> TokenStream {
                         .filter(|f| {
                             !f.attrs.iter().any(|attr| {
                                 let mut is_skip = false;
-                                if attr.path().is_ident(ATTR_NAMESPACE) {
-                                    // only parse ATTR_NAMESPACE and not [serde] or [default]
+                                if attr.path().is_ident(ATTR_SKIP_NAMESPACE) {
+                                    // only parse ATTR_SKIP_NAMESPACE and not [serde] or [default]
                                     attr.parse_nested_meta(|meta| {
-                                        is_skip = meta.path.is_ident("skip");
+                                        is_skip |= meta.path.is_ident("Dict");
                                         Ok(())
                                     })
                                     .unwrap();
@@ -899,9 +901,10 @@ pub fn dict_derive(input: TokenStream) -> TokenStream {
             .filter(|variant| {
                 !variant.attrs.iter().any(|attr| {
                     let mut is_skip = false;
-                    if attr.path().is_ident(ATTR_NAMESPACE) { // only parse ATTR_NAMESPACE and not [serde] or [default]
+                    if attr.path().is_ident(ATTR_SKIP_NAMESPACE) {
+                        // only parse ATTR_SKIP_NAMESPACE and not [serde] or [default]
                         attr.parse_nested_meta(|meta| {
-                            is_skip = meta.path.is_ident("skip");
+                            is_skip |= meta.path.is_ident("Dict");
                             Ok(())
                         })
                         .unwrap();
@@ -945,10 +948,10 @@ pub fn dict_derive(input: TokenStream) -> TokenStream {
                 .filter(|variant| {
                     variant.attrs.iter().any(|attr| {
                         let mut is_skip = false;
-                        if attr.path().is_ident(ATTR_NAMESPACE) {
-                            // only parse ATTR_NAMESPACE and not [serde] or [default]
+                        if attr.path().is_ident(ATTR_SKIP_NAMESPACE) {
+                            // only parse ATTR_SKIP_NAMESPACE and not [serde] or [default]
                             attr.parse_nested_meta(|meta| {
-                                is_skip = meta.path.is_ident("skip");
+                                is_skip |= meta.path.is_ident("Dict");
                                 Ok(())
                             })
                             .unwrap();

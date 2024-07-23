@@ -11,7 +11,7 @@ enum Tester {
         x: u32,
         y: u32,
     },
-    #[pyo3_smd(skip)]
+    #[skip(Str, Repr, Dir)]
     Gamma {
         x: u32,
         y: u32,
@@ -25,7 +25,7 @@ enum Tester {
 struct Person {
     pub name: String,
     occupation: String,
-    #[pyo3_smd(skip)]
+    #[skip(Dir, Str, Repr)]
     pub phone_num: String,
 }
 
