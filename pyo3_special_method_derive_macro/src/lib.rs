@@ -35,8 +35,9 @@ fn implements_display(ty: &Ident) -> bool {
 
 /// Add a `__dir__` method to a struct or enum.
 ///
-/// - Skip exposure of certain fields by adding `Dir` to the `#[skip(...)]` attribute macro: the `#[skip(Dir)]`
+/// - Skip exposure of certain fields by adding `Dir` to the `#[skip(...)]` attribute macro: `#[skip(Dir)]`
 /// - For structs, all fields are skipped which are not marked `pub`
+/// - Skip exposure of certain fields for all derive macros by adding `All`: `#[skip(All)]`
 ///
 /// ## Example
 /// ```ignore
@@ -247,8 +248,9 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
 /// Certain implementations are automatically provided, but you can implement the required trait yourself
 /// or use a provided convenience macro.
 ///
-/// - Skip exposure of certain fields by adding `Str` to the `#[skip(...)]` attribute macro: the `#[skip(Str)]`
+/// - Skip exposure of certain fields by adding `Str` to the `#[skip(...)]` attribute macro: `#[skip(Str)]`
 /// - For structs, all fields are skipped which are not marked `pub`
+/// - Skip exposure of certain fields for all derive macros by adding `All`: `#[skip(All)]`
 ///
 /// The `formatter` attribute macro, when used to annotate an enum, controls how the type name and variant are formatted.
 /// By default it is `{}.{}`. The format string takes 2 (filled in as name, variant), 1 (filled in as name), or 0 formatters:
@@ -407,8 +409,9 @@ pub fn auto_display(input_stream: TokenStream) -> TokenStream {
 /// Certain implementations are automatically provided, but you can implement the required trait yourself
 /// or use a provided convenience macro.
 ///
-/// - Skip exposure of certain fields by adding `Repr` to the `#[skip(...)]` attribute macro: the `#[skip(Repr)]`
+/// - Skip exposure of certain fields by adding `Repr` to the `#[skip(...)]` attribute macro: `#[skip(Repr)]`
 /// - For structs, all fields are skipped which are not marked `pub`
+/// - Skip exposure of certain fields for all derive macros by adding `All`: `#[skip(All)]`
 ///
 /// The `formatter` attribute macro, when used to annotate an enum, controls how the type name and variant are formatted.
 /// By default it is `{}.{}`. The format string takes 2 (filled in as name, variant), 1 (filled in as name), or 0 formatters:
@@ -563,7 +566,8 @@ pub fn auto_debug(input_stream: TokenStream) -> TokenStream {
 /// Add a `__getattr__` method to a struct or enum.
 ///
 /// - For structs, all fields are skipped which are not marked `pub`
-/// - Skip exposure of certain fields by adding `Getattr` to the `#[skip(...)]` attribute macro: the `#[skip(Getattr)]`
+/// - Skip exposure of certain fields by adding `Getattr` to the `#[skip(...)]` attribute macro: `#[skip(Getattr)]`
+/// - Skip exposure of certain fields for all derive macros by adding `All`: `#[skip(All)]`
 ///
 /// ## Example
 /// ```ignore
@@ -791,7 +795,8 @@ pub fn getattr_derive(input: TokenStream) -> TokenStream {
 /// Add a `__dict__` attribute to a struct or enum.
 ///
 /// - For structs, all fields are skipped which are not marked `pub`
-/// - Skip exposure of certain fields by adding `Dict` to the `#[skip(...)]` attribute macro: the `#[skip(Dict)]`
+/// - Skip exposure of certain fields by adding `Dict` to the `#[skip(...)]` attribute macro: `#[skip(Dict)]`
+/// - Skip exposure of certain fields for all derive macros by adding `All`: `#[skip(All)]`
 ///
 /// ## Example
 /// ```ignore
