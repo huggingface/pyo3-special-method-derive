@@ -34,7 +34,7 @@ fn implements_display(ty: &Ident) -> bool {
 
 /// Add a `__dir__` method to a struct or enum.
 ///
-/// - Skip exposure of certain fields by adding the `#[pyo3_smd(skip)]` attribute macro
+/// - Skip exposure of certain fields by adding `Dir` to the `#[skip(...)]` attribute macro: the `#[skip(Dir)]`
 /// - For structs, all fields are skipped which are not marked `pub`
 ///
 /// ## Example
@@ -244,8 +244,7 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
 /// Certain implementations are automatically provided, but you can implement the required trait yourself
 /// or use a provided convenience macro.
 ///
-/// - Skip printing of certain fields by adding the `#[pyo3_smd(skip)]` attribute macro
-/// - To specialze skipping for `__str__`, use the `#[pyo3_smd_str(skip)]` attributes
+/// - Skip exposure of certain fields by adding `Str` to the `#[skip(...)]` attribute macro: the `#[skip(Str)]`
 /// - For structs, all fields are skipped which are not marked `pub`
 ///
 /// The `formatter` attribute macro, when used to annotate an enum, controls how the type name and variant are formatted.
@@ -405,8 +404,7 @@ pub fn auto_display(input_stream: TokenStream) -> TokenStream {
 /// Certain implementations are automatically provided, but you can implement the required trait yourself
 /// or use a provided convenience macro.
 ///
-/// - Skip printing of certain fields by adding the `#[pyo3_smd(skip)]` attribute macro
-/// - To specialze skipping for `__repr__`, use the `#[pyo3_smd_repr(skip)]` attributes
+/// - Skip exposure of certain fields by adding `Repr` to the `#[skip(...)]` attribute macro: the `#[skip(Repr)]`
 /// - For structs, all fields are skipped which are not marked `pub`
 ///
 /// The `formatter` attribute macro, when used to annotate an enum, controls how the type name and variant are formatted.
@@ -562,7 +560,7 @@ pub fn auto_debug(input_stream: TokenStream) -> TokenStream {
 /// Add a `__getattr__` method to a struct or enum.
 ///
 /// - For structs, all fields are skipped which are not marked `pub`
-/// - Skip printing of certain fields or variants by adding the `#[pyo3_smd(skip)]` attribute macro
+/// - Skip exposure of certain fields by adding `Getattr` to the `#[skip(...)]` attribute macro: the `#[skip(Getattr)]`
 ///
 /// ## Example
 /// ```ignore
@@ -789,7 +787,7 @@ pub fn getattr_derive(input: TokenStream) -> TokenStream {
 /// Add a `__dict__` attribute to a struct or enum.
 ///
 /// - For structs, all fields are skipped which are not marked `pub`
-/// - Skip printing of certain fields or variants by adding the `#[pyo3_smd(skip)]` attribute macro
+/// - Skip exposure of certain fields by adding `Dict` to the `#[skip(...)]` attribute macro: the `#[skip(Dict)]`
 ///
 /// ## Example
 /// ```ignore

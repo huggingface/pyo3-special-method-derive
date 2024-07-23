@@ -10,9 +10,8 @@ This crate enables you to automatically derive Python dunder methods for your Ru
     - `__getattr__`
     - `__dict__`
 - Support for structs and enums (only unit and complex enums due to a PyO3 limitation)
-- Support for skipping variants or fields with the `#[pyo3_smd(skip)]` attribute
+- Support for skipping variants or fields per derive macro with the `#[skip(...)]` attribute
 - Automatically skip struct fields which are not `pub`
-- Support for skipping variants or fields for `__str__` or `__repr__` differently with the `#[pyo3_smd_str(skip)]` and `#[pyo3_smd_str(repr)]` attributes
 
 ## Example
 ```rust
