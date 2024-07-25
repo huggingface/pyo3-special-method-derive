@@ -353,7 +353,7 @@ fn generate_fmt_impl_for_enum(
                 for unnamed in &fields.unnamed{
                     let field_repr = if !to_skip {
                         let field_value = &variant.ident;
-                        quote! { #name::#field_value(single) => {single.#formatter();}, }
+                        quote! { #name::#field_value(single) => {repr += &format!("{}", single.#formatter());}, }
                     } else {
                         quote! {
                             #ident => repr += "<variant skipped>",
