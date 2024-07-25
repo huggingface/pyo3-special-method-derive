@@ -4,7 +4,7 @@ use pyo3_special_method_derive::{Dir, Repr, Str};
 #[pyclass]
 #[derive(Str, Repr, Dir)]
 enum Tester {
-    #[pyo3_smd_repr(skip)]
+    #[skip(Str, Repr, Dir)]
     Alpha {
         x: u32,
     },
@@ -12,7 +12,7 @@ enum Tester {
         x: u32,
         y: u32,
     },
-    #[pyo3_smd_str(skip)]
+    #[skip(Str, Repr, Dir)]
     Gamma {
         x: u32,
         y: u32,
@@ -25,9 +25,9 @@ enum Tester {
 #[allow(dead_code)]
 struct Person {
     pub name: String,
-    #[pyo3_smd_repr(skip)]
+    #[skip(Repr)]
     pub occupation: String,
-    #[pyo3_smd_str(skip)]
+    #[skip(Repr)]
     pub phone_num: String,
 }
 
