@@ -107,12 +107,15 @@ fn generate_fmt_impl_for_struct(
                     || path.is_ident(ATTR_NAMESPACE_FORMATTER)
                     || path.is_ident(namespace)
                 {
-                    let _ = attr.parse_nested_meta(|meta| {
+                    let res = attr.parse_nested_meta(|meta| {
                         if meta.path.is_ident("skip") {
                             to_skip = true;
                         }
                         Ok(())
                     });
+                    if res.is_err() && path.is_ident(ATTR_NAMESPACE_FORMATTER) {
+                        to_skip = false;
+                    }
                     break;
                 } else if path.is_ident(ATTR_NAMESPACE_NO_FMT_SKIP) {
                     // Explicitly mark to not skip the field
@@ -152,7 +155,6 @@ fn generate_fmt_impl_for_struct(
             if formatters > 1 {
                 return Err(syn::Error::new(data_struct.struct_token.span(), "Specify 1 (variant), or 0 formatters in the format string."));
             };
-
             let formatter_str = variant_fmt.to_string();
 
             let format_str = format!("{{}}={}{{}}", &formatter_str[1..formatter_str.len()-1]);
@@ -174,7 +176,9 @@ fn generate_fmt_impl_for_struct(
                             None => {
                                 // If the field doesn't have a name, we generate a name based on its index
                                 let index = syn::Index::from(i);
-                                if formatters > 0 {
+                                print!("{:?}:{:?}, Number of formatters: {}", index.clone(), postfix,formatters.clone());
+
+                                if formatters == 1 {
                                     quote! {
                                         repr += &format!(#format_str, stringify!(#index), self.#index.#formatter(), #postfix);
                                     }
@@ -263,6 +267,11 @@ fn generate_fmt_impl_for_enum(
     string_formatter: Option<&Vec<Attribute>>,
 ) -> syn::Result<proc_macro2::TokenStream> {
     let variants = data_enum.variants.iter().collect::<Vec<_>>();
+    let formatter = if is_repr {
+        quote! { fmt_debug }
+    } else {
+        quote! { fmt_display }
+    };
     let mut ident_formatter = quote! { #DEFAULT_ENUM_IDENT_FORMATTER };
     if let Some(attrs) = string_formatter {
         for attr in attrs {
@@ -336,16 +345,23 @@ fn generate_fmt_impl_for_enum(
                     }
                 })
             }
-            syn::Fields::Unnamed(fields) if fields.unnamed.len() == 1 => {
+            syn::Fields::Unnamed(fields) => {
                 // Tuple variant with one field
                 // TODO now that we have AutoDisplay we want this
-                Ok(if !to_skip {
-                    quote! { #name::#ident(ref single) => {#ident_formatter;} }
-                } else {
-                    quote! {
-                        #ident => repr += "<variant skipped>",
-                    }
-                })
+                let mut enum_representation = TokenStream::new();
+                println!("{:?}", &variant.ident);
+                for unnamed in &fields.unnamed{
+                    let field_repr = if !to_skip {
+                        let field_value = &variant.ident;
+                        quote! { #name::#field_value(single) => {single.#formatter();}, }
+                    } else {
+                        quote! {
+                            #ident => repr += "<variant skipped>",
+                        }
+                    };
+                    enum_representation = quote!{#enum_representation #field_repr};
+               }
+               Ok(enum_representation)
             }
             Fields::Named(fields) => {
                 let mut field_names: Vec<(&Option<Ident>, String, usize)> = Vec::new();
@@ -381,7 +397,6 @@ fn generate_fmt_impl_for_enum(
                 }
 
                 let mut format_string = "{}(".to_string();
-                let formatter = if is_repr { quote! { fmt_debug } } else { quote! { fmt_display } };
                 for (i, (name, formatter, _n_formatters)) in field_names.iter().enumerate() {
                     if i == 0 {
                         format_string = format!("{format_string}{}={}", name.as_ref().unwrap(), formatter);
