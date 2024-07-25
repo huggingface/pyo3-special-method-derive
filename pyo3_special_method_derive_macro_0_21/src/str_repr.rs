@@ -6,7 +6,7 @@ use proc_macro2::TokenStream;
 use quote::quote;
 use syn::parse::{Parse, ParseStream};
 use syn::spanned::Spanned;
-use syn::{Attribute, DeriveInput, Fields, Ident, LitStr, Token, Visibility};
+use syn::{Attribute, DeriveInput, Error, Fields, Ident, LitStr, Token, Visibility};
 macro_rules! create_body {
     ($input:expr, $ident:expr, $is_repr:expr) => {
         match &$input.data {
@@ -255,8 +255,6 @@ pub fn find_display_attribute(attr: &Attribute) -> Option<TokenStream> {
         } else {
             None
         }
-    } else {
-        None
     }
 }
 
@@ -441,11 +439,11 @@ fn generate_fmt_impl_for_enum(
 
     // Handle any escaped {}
     let formatters = ident_formatter.to_string().matches("{}").count()
-        - ident_formatter.to_string().matches("{{}}").count();
+        + ident_formatter.to_string().matches("{{}}").count();
     let ident_formatter = if formatters == 2 {
         quote! { format!(#ident_formatter, stringify!(#name), repr) }
     } else if formatters == 1 {
-        quote! { format!(#ident_formatter, stringify!(#name)) }
+        quote! { format!(#ident_formatter, repr) }
     } else if formatters == 0 {
         quote! { format!(#ident_formatter) }
     } else {
