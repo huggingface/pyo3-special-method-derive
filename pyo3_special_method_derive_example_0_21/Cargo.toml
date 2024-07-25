@@ -1,5 +1,5 @@
 [package]
-name = "pyo3_special_method_derive_example"
+name = "pyo3_special_method_derive_example_0_21"
 version.workspace = true
 edition.workspace = true
 description.workspace = true

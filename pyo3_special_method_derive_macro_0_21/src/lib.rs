@@ -254,7 +254,7 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
 ///
 /// ```ignore
 /// use pyo3::pyclass;
-/// use pyo3_special_method_derive::Str;
+/// use pyo3_special_method_derive_0_21::Str;
 /// #[pyclass]
 /// #[derive(Str)]
 /// #[format(fmt = "{}.{}")]
@@ -269,7 +269,7 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
 ///
 /// ```ignore
 /// use pyo3::pyclass;
-/// use pyo3_special_method_derive::Str;
+/// use pyo3_special_method_derive_0_21::Str;
 /// #[pyclass]
 /// #[derive(Str)]
 /// #[format(fmt = "{}({})")]
@@ -329,7 +329,7 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 /// By default it is `{}.{}`. The format string takes 2 (filled in as name, variant), 1 (filled in as name), or 0 formatters:
 ///
 /// ```ignore
-/// use pyo3_special_method_derive::AutoDisplay;
+/// use pyo3_special_method_derive_0_21::AutoDisplay;
 /// #[derive(AutoDisplay)]
 /// #[format(fmt = "{}.{}")]
 /// enum Person {
@@ -342,7 +342,7 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 /// By default it is `{}({})`. The format string takes 2 (filled in as name, fields), 1 (filled in as name), or 0 formatters:
 ///
 /// ```ignore
-/// use pyo3_special_method_derive::AutoDisplay;
+/// use pyo3_special_method_derive_0_21::AutoDisplay;
 /// #[derive(AutoDisplay)]
 /// #[format(fmt = "{}({})")]
 /// struct Mountain {
@@ -414,7 +414,7 @@ pub fn auto_display(input_stream: TokenStream) -> TokenStream {
 ///
 /// ```ignore
 /// use pyo3::pyclass;
-/// use pyo3_special_method_derive::Repr;
+/// use pyo3_special_method_derive_0_21::Repr;
 /// #[pyclass]
 /// #[format(fmt = "{}.{}")]
 /// enum Person {
@@ -428,7 +428,7 @@ pub fn auto_display(input_stream: TokenStream) -> TokenStream {
 ///
 /// ```ignore
 /// use pyo3::pyclass;
-/// use pyo3_special_method_derive::Repr;
+/// use pyo3_special_method_derive_0_21::Repr;
 /// #[pyclass]
 /// #[format(fmt = "{}({})")]
 /// struct Mountain {
@@ -489,7 +489,7 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
 /// By default it is `{}.{}`. The format string takes 2 (filled in as name, variant), 1 (filled in as name), or 0 formatters:
 ///
 /// ```ignore
-/// use pyo3_special_method_derive::AutoDebug;
+/// use pyo3_special_method_derive_0_21::AutoDebug;
 /// #[derive(AutoDebug)]
 /// #[format(fmt = "{}.{}")]
 /// enum Person {
@@ -502,7 +502,7 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
 /// By default it is `{}({})`. The format string takes 2 (filled in as name, fields), 1 (filled in as name), or 0 formatters:
 ///
 /// ```ignore
-/// use pyo3_special_method_derive::AutoDebug;
+/// use pyo3_special_method_derive_0_21::AutoDebug;
 /// #[derive(AutoDebug)]
 /// #[format(fmt = "{}({})")]
 /// struct Mountain {

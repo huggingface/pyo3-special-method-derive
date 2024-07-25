@@ -50,18 +50,18 @@ pub(crate) fn impl_formatter(
     // Determine which traits to implement
     match ty {
         DeriveType::ForAutoDisplay => Ok(quote! {
-            impl pyo3_special_method_derive::PyDisplay for #ident {
+            impl pyo3_special_method_derive_0_21::PyDisplay for #ident {
                 fn fmt_display(&self) -> String {
-                    use pyo3_special_method_derive::PyDisplay;
+                    use pyo3_special_method_derive_0_21::PyDisplay;
                     #body_display
                     repr
                 }
             }
         }),
         DeriveType::ForAutoDebug => Ok(quote! {
-            impl pyo3_special_method_derive::PyDebug for #ident {
+            impl pyo3_special_method_derive_0_21::PyDebug for #ident {
                 fn fmt_debug(&self) -> String {
-                    use pyo3_special_method_derive::PyDebug;
+                    use pyo3_special_method_derive_0_21::PyDebug;
                     #body_debug
                     repr
                 }

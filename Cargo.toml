@@ -15,4 +15,4 @@ repository = "https://github.com/EricLBuehler/pyo3-special-method-derive"
 
 [workspace.dependencies]
 pyo3_special_method_derive_macro_0_21 = { path = "pyo3_special_method_derive_macro_0_21" }
-pyo3 = { version = "0.22", features = ["multiple-pymethods"] }
+pyo3 = { version = "0.21", features = ["multiple-pymethods"] }

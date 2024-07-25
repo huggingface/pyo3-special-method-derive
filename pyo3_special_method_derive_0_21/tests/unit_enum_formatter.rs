@@ -1,5 +1,5 @@
 use pyo3::pyclass;
-use pyo3_special_method_derive::Str;
+use pyo3_special_method_derive_0_21::Str;
 
 #[pyclass(eq, eq_int)]
 #[derive(Str, PartialEq)]
