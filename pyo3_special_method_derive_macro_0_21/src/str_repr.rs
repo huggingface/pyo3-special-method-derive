@@ -172,7 +172,7 @@ fn generate_fmt_impl_for_struct(
                 }
             } else {
                 quote! {
-                    repr += &format!(#format_str, stringify!(#ident), #postfix);
+                    repr += #format_str;
                 }
             })
         })
