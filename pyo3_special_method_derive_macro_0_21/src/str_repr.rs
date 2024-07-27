@@ -25,7 +25,7 @@ macro_rules! create_body {
 }
 
 const DEFAULT_ENUM_IDENT_FORMATTER: &str = "{}.{}";
-const DEFAULT_ELEMENT_FORMATTER: &str = "{}";
+const DEFAULT_ELEMENT_FORMATTER: &str = "{}={}";
 const DEFAULT_STRUCT_IDENT_FORMATTER: &str = "{}({})";
 
 pub(crate) enum DeriveType {
@@ -81,26 +81,24 @@ fn generate_fmt_impl_for_struct(
         for attr in attrs {
             if attr.path().is_ident(ATTR_NAMESPACE_FORMATTER) {
                 match find_display_attribute(attr){
-                    Ok(Some(formatter)) => ident_formatter = formatter,
+                    Ok(Some(formatter)) => {ident_formatter = formatter; break },
                     Err(error) => return Err(error),
                     Ok(None)=>{},
                 }
             }
         }
     }
-
+    let namespace = if is_repr {
+                ATTR_NAMESPACE_REPR
+            } else {
+                ATTR_NAMESPACE_STR
+            };
     let fields = &data_struct.fields;
     let fields = fields
         .iter()
         .filter(|f| {
             // Default `is_skip` based on the field's visibility
             let mut to_skip = !matches!(f.vis, Visibility::Public(_));
-            let namespace = if is_repr {
-                ATTR_NAMESPACE_REPR
-            } else {
-                ATTR_NAMESPACE_STR
-            };
-
             for attr in &f.attrs {
                 let path = attr.path();
                 if path.is_ident(ATTR_NAMESPACE)
@@ -132,18 +130,22 @@ fn generate_fmt_impl_for_struct(
         .map(|(i, field)| {
             let display_attr = {
                 let mut display_attr = None;
-
                 for attr in &field.attrs {
-                    let path = attr.path();
-                    if path.is_ident(ATTR_NAMESPACE_FORMATTER) {
+                    if attr.path().is_ident(ATTR_NAMESPACE_FORMATTER) {
                         display_attr = Some(attr);
+                        break
                     }
                 }
-
                 display_attr
             };
 
-            let mut variant_fmt = quote! { #DEFAULT_ELEMENT_FORMATTER };
+            let (ident, mut variant_fmt) = match &field.ident {
+                Some(ident) => (quote! { #ident }, quote! { "{}={}" }),
+                None => {
+                    let idx = syn::Index::from(i);
+                    (quote! { self.#idx }, quote! { #DEFAULT_ELEMENT_FORMATTER })
+                }
+            };
             if let Some(display_attr) = display_attr {
                 match find_display_attribute(display_attr) {
                     Ok(Some(formatter)) => variant_fmt = formatter,
@@ -151,45 +153,28 @@ fn generate_fmt_impl_for_struct(
                     Err(e) => return Err(e), 
                 }
             }
-
-            let formatters = variant_fmt.to_string().matches("{}").count()
-                + variant_fmt.to_string().matches("{{}}").count();
-            if formatters > 1 {
-                return Err(syn::Error::new(data_struct.struct_token.span(), "Specify 1 (variant), or 0 formatters in the format string."));
+            let formatters = variant_fmt.to_string().matches("{}").count() + variant_fmt.to_string().matches("{{}}").count();
+            if formatters > 2 {
+                return Err(syn::Error::new(data_struct.struct_token.span(), "Specify 2, 1 (variant), or 0 formatters in the format string."));
             };
             let formatter_str = variant_fmt.to_string();
-            let format_str = format!("{{}}={}{{}}", &formatter_str[1..formatter_str.len()-1]);
-
             let postfix = if i + 1 < fields.len() { ", " } else { "" };
             let formatter = if is_repr { quote! { fmt_debug } } else { quote! { fmt_display } };
-            Ok(match &field.ident {
-                            Some(ident) => {
-                                if formatters > 0 {
-                                    quote! {
-                                        repr += &format!(#format_str, stringify!(#ident), self.#ident.#formatter(), #postfix);
-                                    }
-                                } else {
-                                    quote! {
-                                        repr += &format!(#format_str, stringify!(#ident), #postfix);
-                                    }
-                                }
-                            }
-                            None => {
-                                // If the field doesn't have a name, we generate a name based on its index
-                                let index = syn::Index::from(i);
-                                print!("{:?}:{:?}, Number of formatters: {}", index.clone(), postfix,formatters.clone());
+            let format_str = format!("{}{{}}", &formatter_str[1..formatter_str.len()-1]);
 
-                                if formatters == 1 {
-                                    quote! {
-                                        repr += &format!(#format_str, stringify!(#index), self.#index.#formatter(), #postfix);
-                                    }
-                                } else {
-                                    quote! {
-                                        repr += &format!(#format_str, stringify!(#index), #postfix);
-                                    }
-                                }
-                            }
-                        })
+            Ok(if formatters == 2 {
+                quote! {
+                    repr += &format!(#format_str, stringify!(#ident), self.#ident.#formatter(), #postfix);
+                }
+            } else if formatters == 1{
+                quote! {
+                    repr += &format!(#format_str, #ident.#formatter(), #postfix);
+                }
+            } else {
+                quote! {
+                    repr += &format!(#format_str, stringify!(#ident), #postfix);
+                }
+            })
         })
         .collect::<syn::Result<Vec<_>>>()?;
 
@@ -325,7 +310,7 @@ fn generate_fmt_impl_for_enum(
             (to_skip, display_attr)
         };
 
-        let mut variant_fmt = quote! { #DEFAULT_ELEMENT_FORMATTER };
+        let mut variant_fmt = quote! { "{}" };
         if let Some(display_attr) = display_attr {
             match find_display_attribute(display_attr){
                 Ok(Some(fmt)) => variant_fmt = fmt,
@@ -390,7 +375,7 @@ fn generate_fmt_impl_for_enum(
                         display_attr
                     };
 
-                    let mut variant_fmt = quote! { #DEFAULT_ELEMENT_FORMATTER };
+                    let mut variant_fmt = quote! { "{}" };
                     if let Some(display_attr) = display_attr {
                         match find_display_attribute(display_attr) {
                             Ok(Some(formatter)) => variant_fmt = formatter,
