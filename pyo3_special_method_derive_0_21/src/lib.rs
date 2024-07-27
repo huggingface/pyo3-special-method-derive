@@ -33,12 +33,32 @@ use std::{
         Arc, Mutex, RwLock,
     },
 };
-
+use once_cell::sync::Lazy;
 pub use pyo3_special_method_derive_macro_0_21::*;
-
+use std::env;
 /// Number of *characters* to display for each implementation in this crate,
 /// defaults to 100. May be a few chars above or below.
-pub static ELLIPSIS_CHAR_N: AtomicUsize = AtomicUsize::new(100);
+// Define the default value for the environment variable
+const DEFAULT_ELLIPSIS_CHAR_N:usize = 100;
+
+// Use Lazy to initialize the environment variable, allowing for it to be overridden
+pub static ELLIPSIS_CHAR_N: Lazy<AtomicUsize> = Lazy::new(|| {
+    let value = env::var("ELLIPSIS_CHAR_N")
+        .ok()
+        .and_then(|v| v.parse().ok())
+        .unwrap_or(DEFAULT_ELLIPSIS_CHAR_N);
+    AtomicUsize::new(value)
+});
+
+// Function to set the value of ELLIPSIS_CHAR_N
+pub fn set_ellipsis_char_n(value: usize) {
+    ELLIPSIS_CHAR_N.store(value, Ordering::SeqCst);
+}
+
+// Function to get the value of ELLIPSIS_CHAR_N
+pub fn get_ellipsis_char_n() -> usize {
+    ELLIPSIS_CHAR_N.load(Ordering::SeqCst)
+}
 
 /// Types which can be displayed into the `__repr__` implementation.
 pub trait PyDebug {
