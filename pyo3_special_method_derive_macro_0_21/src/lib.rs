@@ -1,10 +1,10 @@
 extern crate proc_macro;
+mod str_repr;
 use proc_macro::TokenStream;
+
 use quote::quote;
 use str_repr::{impl_formatter, DeriveType};
 use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Visibility};
-
-mod str_repr;
 
 const ATTR_NAMESPACE: &str = "pyo3_smd";
 const ATTR_NAMESPACE_STR: &str = "pyo3_smd_str";

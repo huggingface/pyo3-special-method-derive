@@ -80,11 +80,11 @@ fn generate_fmt_impl_for_struct(
     if let Some(attrs) = string_formatter {
         for attr in attrs {
             if attr.path().is_ident(ATTR_NAMESPACE_FORMATTER) {
-                if let Some(formatter) = find_display_attribute(attr) {
-                    ident_formatter = formatter;
-                    break;
+                match find_display_attribute(attr){
+                    Ok(Some(formatter)) => ident_formatter = formatter,
+                    Err(error) => return Err(error),
+                    Ok(None)=>{},
                 }
-                break;
             }
         }
     }
@@ -145,18 +145,19 @@ fn generate_fmt_impl_for_struct(
 
             let mut variant_fmt = quote! { #DEFAULT_ELEMENT_FORMATTER };
             if let Some(display_attr) = display_attr {
-                if let Some(formatter) = find_display_attribute(display_attr) {
-                    variant_fmt = formatter;
+                match find_display_attribute(display_attr) {
+                    Ok(Some(formatter)) => variant_fmt = formatter,
+                    Ok(None)=>{},
+                    Err(e) => return Err(e), 
                 }
             }
 
             let formatters = variant_fmt.to_string().matches("{}").count()
-                - variant_fmt.to_string().matches("{{}}").count();
+                + variant_fmt.to_string().matches("{{}}").count();
             if formatters > 1 {
                 return Err(syn::Error::new(data_struct.struct_token.span(), "Specify 1 (variant), or 0 formatters in the format string."));
             };
             let formatter_str = variant_fmt.to_string();
-
             let format_str = format!("{{}}={}{{}}", &formatter_str[1..formatter_str.len()-1]);
 
             let postfix = if i + 1 < fields.len() { ", " } else { "" };
@@ -194,11 +195,11 @@ fn generate_fmt_impl_for_struct(
 
     // Handle any escaped {}
     let formatters = ident_formatter.to_string().matches("{}").count()
-        - ident_formatter.to_string().matches("{{}}").count();
+        + ident_formatter.to_string().matches("{{}}").count();
     let ident_formatter = if formatters == 2 {
         quote! { format!(#ident_formatter, stringify!(#name), repr) }
     } else if formatters == 1 {
-        quote! { format!(#ident_formatter, stringify!(#name)) }
+        quote! { format!(#ident_formatter, repr) }
     } else if formatters == 0 {
         quote! { format!(#ident_formatter) }
     } else {
@@ -218,17 +219,26 @@ fn generate_fmt_impl_for_struct(
 
 // Define a struct to hold the parsed tokens
 struct FmtAttribute {
-    ident: Ident,
-    _eq_token: Token![=],
-    pub lit_str: LitStr,
+    ident: Option<Ident>,
+    _eq_token: Option<Token![=]>,
+    pub lit_str: Option<LitStr>,
 }
 
 // Implement parsing for the FmtAttribute struct
 impl Parse for FmtAttribute {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let ident: Ident = input.parse()?;
-        let _eq_token: Token![=] = input.parse()?;
-        let lit_str: LitStr = input.parse()?;
+        let ident = match input.parse(){
+            Ok(ident) => ident,
+            Err(_) => None // skip #[format]
+        };
+        let _eq_token = match input.parse(){
+            Ok(token) => token,
+            Err(_) => None, // skip #[format(skip)]
+        };
+        let lit_str = match input.parse(){
+            Ok(str_format) => str_format,
+            Err(_) => None, // skip #[format(skip)]
+        }; // if we have xxx = , then we parse
         Ok(FmtAttribute {
             ident,
             _eq_token,
@@ -237,24 +247,27 @@ impl Parse for FmtAttribute {
     }
 }
 
-pub fn find_display_attribute(attr: &Attribute) -> Option<TokenStream> {
+// Parse the provided attribute. Returns the appropriate erro if it fails.
+pub fn find_display_attribute(attr: &Attribute) -> Result<Option<TokenStream>, Error> {
     // Parse the attribute arguments
-    let attribute = match attr.parse_args::<FmtAttribute>() {
-        Ok(display_macro) => Some(display_macro),
-        Err(e) => {
-            e.to_compile_error();
-            None
-        }
-    };
-
-    // Check if we have a valid attribute and return the literal as TokenStream
-    if let Some(attr) = attribute {
-        if attr.ident == "fmt" {
-            let list_str = attr.lit_str;
-            Some(quote! { #list_str })
-        } else {
-            None
-        }
+    let attribute = attr.parse_args::<FmtAttribute>();
+    match attribute {
+        Ok(fmt_attr) => 
+            match fmt_attr.ident {
+                Some(fmt_ident) =>
+                    {
+                        if fmt_ident == "skip" {
+                            return Ok(None);
+                        } else if fmt_ident == "fmt"{
+                            if let Some(list_str) = fmt_attr.lit_str{
+                                return Ok(Some(quote! { #list_str }));
+                            }
+                        }
+                        return Err(syn::Error::new_spanned(attr, "Error parsing fmt, ident wrong or not lit str"));
+                    } 
+                _ => return Ok(None),
+            }
+        Err(error) =>{println!("You used #[format]: {:?}", attr); Ok(None)},
     }
 }
 
@@ -274,11 +287,11 @@ fn generate_fmt_impl_for_enum(
     if let Some(attrs) = string_formatter {
         for attr in attrs {
             if attr.path().is_ident(ATTR_NAMESPACE_FORMATTER) {
-                if let Some(formatter) = find_display_attribute(attr) {
-                    ident_formatter = formatter;
-                    break;
+                match find_display_attribute(attr){
+                    Ok(Some(formatter)) => ident_formatter = formatter,
+                    Ok(None)=>{},
+                    Err(error) => return Err(error),   
                 }
-                break;
             }
         }
     }
@@ -314,9 +327,11 @@ fn generate_fmt_impl_for_enum(
 
         let mut variant_fmt = quote! { #DEFAULT_ELEMENT_FORMATTER };
         if let Some(display_attr) = display_attr {
-            if let Some(formatter) = find_display_attribute(display_attr) {
-                variant_fmt = formatter;
-            }
+            match find_display_attribute(display_attr){
+                Ok(Some(fmt)) => variant_fmt = fmt,
+                Err(error) => return Err(error),
+                Ok(None)=>{},
+            };
         }
 
         // If {} is not in ident_fmt, we must not format ident.
@@ -348,17 +363,15 @@ fn generate_fmt_impl_for_enum(
                 // TODO now that we have AutoDisplay we want this
                 let mut enum_representation = TokenStream::new();
                 println!("{:?}", &variant.ident);
-                for unnamed in &fields.unnamed{
-                    let field_repr = if !to_skip {
-                        let field_value = &variant.ident;
-                        quote! { #name::#field_value(single) => {repr += &format!("{}", single.#formatter());}, }
-                    } else {
-                        quote! {
-                            #ident => repr += "<variant skipped>",
-                        }
-                    };
-                    enum_representation = quote!{#enum_representation #field_repr};
-               }
+                let field_repr = if !to_skip {
+                    let field_value = &variant.ident;
+                    quote! { #name::#field_value(single) => {repr += &format!("{}", single.#formatter());}, }
+                } else {
+                    quote! {
+                        #ident => repr += "<variant skipped>",
+                    }
+                };
+                enum_representation = quote!{#enum_representation #field_repr};
                Ok(enum_representation)
             }
             Fields::Named(fields) => {
@@ -379,8 +392,10 @@ fn generate_fmt_impl_for_enum(
 
                     let mut variant_fmt = quote! { #DEFAULT_ELEMENT_FORMATTER };
                     if let Some(display_attr) = display_attr {
-                        if let Some(formatter) = find_display_attribute(display_attr) {
-                            variant_fmt = formatter;
+                        match find_display_attribute(display_attr) {
+                            Ok(Some(formatter)) => variant_fmt = formatter,
+                            Err(error) => return Err(error),
+                            Ok(None)=>{},
                         }
                     }
 
