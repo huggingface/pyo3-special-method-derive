@@ -168,7 +168,7 @@ fn generate_fmt_impl_for_struct(
                 }
             } else if formatters == 1{
                 quote! {
-                    repr += &format!(#format_str, #ident.#formatter(), #postfix);
+                    repr += &format!(#format_str, self.#ident.#formatter(), #postfix);
                 }
             } else {
                 quote! {
