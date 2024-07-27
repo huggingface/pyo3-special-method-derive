@@ -235,6 +235,7 @@ dependencies = [
 name = "pyo3_special_method_derive_0_21"
 version = "0.4.2"
 dependencies = [
+ "once_cell",
  "pyo3",
  "pyo3_special_method_derive_macro_0_21",
 ]
