@@ -16,7 +16,7 @@
 //! When you have custom Rust structs which need to implement `PyDisplay` and `PyDebug`, you should use the `AutoDisplay` and `AutoDebug` traits.
 //! This will have the same output as `Str` and `Repr` respectively.
 //!
-//! This crate exports 2 traits (`PyDisplay`` and `PyDebug`) which should be implemented for every type for which its field or variant is not skipped.
+//! This crate exports 2 traits (`PyDisplay` and `PyDebug`) which should be implemented for every type for which its field or variant is not skipped.
 //!
 //! It also exports a macro to use the Debug and Display traits to generate a `PyDebug` and `PyDisplay`
 //! implementation.
