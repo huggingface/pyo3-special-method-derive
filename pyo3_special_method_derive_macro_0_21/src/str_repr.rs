@@ -252,7 +252,7 @@ pub fn find_display_attribute(attr: &Attribute) -> Result<Option<TokenStream>, E
                     } 
                 _ => return Ok(None),
             }
-        Err(error) =>{println!("You used #[format]: {:?}", attr); Ok(None)},
+        Err(_) =>Ok(None),
     }
 }
 
@@ -343,11 +343,10 @@ fn generate_fmt_impl_for_enum(
                     }
                 })
             }
-            syn::Fields::Unnamed(fields) => {
+            syn::Fields::Unnamed(_fields) => {
                 // Tuple variant with one field
                 // TODO now that we have AutoDisplay we want this
                 let mut enum_representation = TokenStream::new();
-                println!("{:?}", &variant.ident);
                 let field_repr = if !to_skip {
                     let field_value = &variant.ident;
                     quote! { #name::#field_value(single) => {repr += &format!("{}", single.#formatter());}, }
@@ -429,10 +428,6 @@ fn generate_fmt_impl_for_enum(
                         }
                     }
                 })
-            }
-            _ => {
-                // Default case: stringify the variant name
-                Ok(quote! {  &format!("{}", stringify!(#ident)); })
             }
         }
     }).collect::<syn::Result<Vec<_>>>()?;
