@@ -2,7 +2,7 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::quote;
 use str_repr::{impl_formatter, DeriveType};
-use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Visibility};
+use syn::{parse::Parser, parse_macro_input, Data, DeriveInput, Fields, Ident, Visibility};
 
 mod str_repr;
 
@@ -1020,5 +1020,67 @@ pub fn dict_derive(input: TokenStream) -> TokenStream {
             }
         }
     };
+    expanded.into()
+}
+
+#[proc_macro_attribute]
+pub fn richcmp_derive_with(args: TokenStream, input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DeriveInput);
+    let name = &input.ident;
+
+    let args_parsed = syn::punctuated::Punctuated::<syn::Path, syn::Token![,]>::parse_terminated
+        .parse2(args.into())
+        .unwrap(); // Better to turn it into a `compile_error!()`
+
+    let mut do_partialeq = false;
+    let mut do_partialord = false;
+    for arg in args_parsed {
+        do_partialeq |= arg.is_ident("PartialEq");
+        do_partialord |= arg.is_ident("PartialOrd");
+    }
+
+    let partialeq_handler = if do_partialeq {
+        quote! {
+            pyo3::basic::CompareOp::Eq => Ok(self == rhs),
+            pyo3::basic::CompareOp::Ne => Ok(self != rhs),
+        }
+    } else {
+        quote! {
+            pyo3::basic::CompareOp::Eq => Err(pyo3::exceptions::PyNotImplementedError::new_err("__eq__ is not implemented.")),
+            pyo3::basic::CompareOp::Ne => Err(pyo3::exceptions::PyNotImplementedError::new_err("__ne__ is not implemented.")),
+        }
+    };
+
+    let partialord_handler = if do_partialord {
+        quote! {
+            pyo3::basic::CompareOp::Lt => Ok(self < rhs),
+            pyo3::basic::CompareOp::Le => Ok(self <= rhs),
+            pyo3::basic::CompareOp::Gt => Ok(self > rhs),
+            pyo3::basic::CompareOp::Ge => Ok(self >= rhs),
+        }
+    } else {
+        quote! {
+            pyo3::basic::CompareOp::Lt => Err(pyo3::exceptions::PyNotImplementedError::new_err("__lt__ is not implemented.")),
+            pyo3::basic::CompareOp::Le => Err(pyo3::exceptions::PyNotImplementedError::new_err("__le__ is not implemented.")),
+            pyo3::basic::CompareOp::Gt => Err(pyo3::exceptions::PyNotImplementedError::new_err("__gt__ is not implemented.")),
+            pyo3::basic::CompareOp::Ge => Err(pyo3::exceptions::PyNotImplementedError::new_err("__ge__ is not implemented.")),
+        }
+    };
+
+    let expanded = quote! {
+        #input 
+
+        #[pyo3::pymethods]
+        impl #name {
+            #[allow(non_snake_case)]
+            pub fn __richcmp__(&self, rhs: &Self, op: pyo3::basic::CompareOp) -> pyo3::PyResult<bool> {
+                match op {
+                    #partialeq_handler
+                    #partialord_handler
+                }
+            }
+        }
+    };
+
     expanded.into()
 }
