@@ -25,6 +25,9 @@
 //! In addition, the `AutoDisplay` and `AutoDebug` macros enable usage of arbitrary Rust, non-pyclass structs.
 //!
 
+use once_cell::sync::Lazy;
+pub use pyo3_special_method_derive_macro_0_21::*;
+use std::env;
 use std::{
     cell::Cell,
     collections::{BTreeMap, BTreeSet, HashMap, HashSet},
@@ -33,13 +36,10 @@ use std::{
         Arc, Mutex, RwLock,
     },
 };
-use once_cell::sync::Lazy;
-pub use pyo3_special_method_derive_macro_0_21::*;
-use std::env;
 /// Number of *characters* to display for each implementation in this crate,
 /// defaults to 100. May be a few chars above or below.
 // Define the default value for the environment variable
-const DEFAULT_ELLIPSIS_CHAR_N:usize = 100;
+const DEFAULT_ELLIPSIS_CHAR_N: usize = 100;
 
 // Use Lazy to initialize the environment variable, allowing for it to be overridden
 pub static ELLIPSIS_CHAR_N: Lazy<AtomicUsize> = Lazy::new(|| {

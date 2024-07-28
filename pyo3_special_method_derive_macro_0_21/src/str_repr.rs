@@ -80,19 +80,22 @@ fn generate_fmt_impl_for_struct(
     if let Some(attrs) = string_formatter {
         for attr in attrs {
             if attr.path().is_ident(ATTR_NAMESPACE_FORMATTER) {
-                match find_display_attribute(attr){
-                    Ok(Some(formatter)) => {ident_formatter = formatter; break },
+                match find_display_attribute(attr) {
+                    Ok(Some(formatter)) => {
+                        ident_formatter = formatter;
+                        break;
+                    }
                     Err(error) => return Err(error),
-                    Ok(None)=>{},
+                    Ok(None) => {}
                 }
             }
         }
     }
     let namespace = if is_repr {
-                ATTR_NAMESPACE_REPR
-            } else {
-                ATTR_NAMESPACE_STR
-            };
+        ATTR_NAMESPACE_REPR
+    } else {
+        ATTR_NAMESPACE_STR
+    };
     let fields = &data_struct.fields;
     let fields = fields
         .iter()
@@ -150,7 +153,7 @@ fn generate_fmt_impl_for_struct(
                 match find_display_attribute(display_attr) {
                     Ok(Some(formatter)) => variant_fmt = formatter,
                     Ok(None)=>{},
-                    Err(e) => return Err(e), 
+                    Err(e) => return Err(e),
                 }
             }
             let formatters = variant_fmt.to_string().matches("{}").count() + variant_fmt.to_string().matches("{{}}").count();
@@ -212,15 +215,15 @@ struct FmtAttribute {
 // Implement parsing for the FmtAttribute struct
 impl Parse for FmtAttribute {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let ident = match input.parse(){
+        let ident = match input.parse() {
             Ok(ident) => ident,
-            Err(_) => None // skip #[format]
+            Err(_) => None, // skip #[format]
         };
-        let _eq_token = match input.parse(){
+        let _eq_token = match input.parse() {
             Ok(token) => token,
             Err(_) => None, // skip #[format(skip)]
         };
-        let lit_str = match input.parse(){
+        let lit_str = match input.parse() {
             Ok(str_format) => str_format,
             Err(_) => None, // skip #[format(skip)]
         }; // if we have xxx = , then we parse
@@ -237,22 +240,23 @@ pub fn find_display_attribute(attr: &Attribute) -> Result<Option<TokenStream>, E
     // Parse the attribute arguments
     let attribute = attr.parse_args::<FmtAttribute>();
     match attribute {
-        Ok(fmt_attr) => 
-            match fmt_attr.ident {
-                Some(fmt_ident) =>
-                    {
-                        if fmt_ident == "skip" {
-                            return Ok(None);
-                        } else if fmt_ident == "fmt"{
-                            if let Some(list_str) = fmt_attr.lit_str{
-                                return Ok(Some(quote! { #list_str }));
-                            }
-                        }
-                        Err(syn::Error::new_spanned(attr, "Error parsing fmt, ident wrong or not lit str"))
-                    } 
-                _ => Ok(None),
+        Ok(fmt_attr) => match fmt_attr.ident {
+            Some(fmt_ident) => {
+                if fmt_ident == "skip" {
+                    return Ok(None);
+                } else if fmt_ident == "fmt" {
+                    if let Some(list_str) = fmt_attr.lit_str {
+                        return Ok(Some(quote! { #list_str }));
+                    }
+                }
+                Err(syn::Error::new_spanned(
+                    attr,
+                    "Error parsing fmt, ident wrong or not lit str",
+                ))
             }
-        Err(_) =>Ok(None),
+            _ => Ok(None),
+        },
+        Err(_) => Ok(None),
     }
 }
 
@@ -272,10 +276,10 @@ fn generate_fmt_impl_for_enum(
     if let Some(attrs) = string_formatter {
         for attr in attrs {
             if attr.path().is_ident(ATTR_NAMESPACE_FORMATTER) {
-                match find_display_attribute(attr){
+                match find_display_attribute(attr) {
                     Ok(Some(formatter)) => ident_formatter = formatter,
-                    Ok(None)=>{},
-                    Err(error) => return Err(error),   
+                    Ok(None) => {}
+                    Err(error) => return Err(error),
                 }
             }
         }
