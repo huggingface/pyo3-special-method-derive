@@ -248,9 +248,9 @@ pub fn find_display_attribute(attr: &Attribute) -> Result<Option<TokenStream>, E
                                 return Ok(Some(quote! { #list_str }));
                             }
                         }
-                        return Err(syn::Error::new_spanned(attr, "Error parsing fmt, ident wrong or not lit str"));
+                        Err(syn::Error::new_spanned(attr, "Error parsing fmt, ident wrong or not lit str"))
                     } 
-                _ => return Ok(None),
+                _ => Ok(None),
             }
         Err(_) =>Ok(None),
     }
