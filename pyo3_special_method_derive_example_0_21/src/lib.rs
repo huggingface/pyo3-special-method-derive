@@ -5,10 +5,12 @@ use std::collections::HashMap;
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 
+type Paris = String;
+
 #[derive(Clone, AutoDisplay, PartialEq, Eq, Hash, Default, AutoDebug)]
 #[format(fmt = "{}")] // We don't want CityName(Paris), but directly Paris
 pub enum CityName {
-    Paris,
+    Paris((String, String)),
     #[default]
     London,
     #[format(fmt = "NYC the best city in the world")]
@@ -20,7 +22,7 @@ impl FromStr for CityName {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "paris" => Ok(CityName::Paris),
+            "paris" => Ok(CityName::Paris((String::from_str("paris").unwrap(),String::from_str("paris").unwrap()))),
             "london" => Ok(CityName::London),
             "new york" => Ok(CityName::NewYork),
             _ => Err(()),

@@ -5,10 +5,12 @@ use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
 use syn::spanned::Spanned;
+use syn::token::Final;
 use syn::{Attribute, DeriveInput, Error, Field, Fields, Ident, LitStr, Token, Visibility};
 
 
 const DEFAULT_ENUM_IDENT_FORMATTER: &str = "{}.{}";
+const DEFAULT_ENUM_UNIT_IDENT_FORMATTER: &str = "{}";
 const DEFAULT_ELEMENT_FORMATTER: &str = "{}={}";
 const DEFAULT_STRUCT_IDENT_FORMATTER: &str = "{}({})";
 
@@ -106,26 +108,21 @@ where T: Spanned+std::fmt::Debug{
     let mut default_variamt_fmt =  quote!{ #variant_fmt };
     for field in fields{
         let mut visibility = matches!(field.vis, Visibility::Public(_));
-        if !is_enum{
+        if is_enum{
             visibility = true;
         }
-        print!("Visibility:{}", visibility);
         match skip_formatting(field.attrs.clone(), &mut default_variamt_fmt, !visibility) { 
             Ok(is_skipped) => {
                 
                 if !is_skipped{
-                    print!("Not skipped: {:?}", field.ident.clone());
                     let formatter_str = default_variamt_fmt.to_string();
                     let formatters = formatter_str.matches("{}").count() - formatter_str.matches("{{}}").count();
                     if formatters > 2 {
                         return Err(syn::Error::new(token.clone().span(), "You can specify at most 2 formatters, one for the field name, and one for it's string representation"));
                     };
                     ids.push(field.ident.clone());
-                    println!("{}, ids: {:?}\n", formatter_str, field.ident.clone());
                     format_strings.push(formatter_str);
                     formatters_counts.push(formatters);
-                } else {
-                    print!("\tSkipped: {:?}, token: {:?}\n", field.ident.clone(), token);
                 }
             },
             Err(e) =>  return Err(e),
@@ -159,24 +156,23 @@ fn generate_fmt_impl_for_enum(
         let variant_name = &variant.ident;
         match &variant.fields {
             Fields::Unit => {
-                let mut default_variamt_fmt =  quote! { #DEFAULT_ELEMENT_FORMATTER};
+                println!("Unit : {:?}\n", variant.ident);
+                let mut default_variamt_fmt =  quote! { #DEFAULT_ENUM_UNIT_IDENT_FORMATTER};
                 let field = variant;
                 let extracted_field_names = match skip_formatting(field.attrs.clone(), &mut default_variamt_fmt, false) { 
                     Ok(is_skipped) => {
                         if !is_skipped{
                             let formatter_str = default_variamt_fmt.to_string();
                             let formatters = formatter_str.matches("{}").count() - formatter_str.matches("{{}}").count();
-                            if formatters > 2 {
-                                return Err(syn::Error::new(variant.span(), "You can specify at most 2 formatters, one for the field name, and one for it's string representation"));
+                            if formatters > 1 {
+                                return Err(syn::Error::new(variant.span(), "You can specify at most 1 formatters,for unit fields of enums"));
                             };
                             let token_stream = match formatters {
-                                    1 => quote!{ #name.#formatter() }, 
-                                    2 => quote!{ stringify!(#variant_name), #name.#formatter() },
+                                    1 => quote!{ ,stringify!(#variant_name)}, 
                                     _ => quote!{},
                             };
-                                
                             Ok(quote! {
-                                Self::#variant_name => repr += &format!(#formatter_str, #token_stream),
+                                Self::#variant_name => repr += &format!(#formatter_str  #token_stream),
                             })
                         } else {
                             Ok(quote!{})
@@ -187,21 +183,21 @@ fn generate_fmt_impl_for_enum(
                 extracted_field_names
             }
             syn::Fields::Unnamed(fields) => {
-                println!("Unamed");
+                println!("Unamed\n");
                 let extracted_field_names = extract_field_formatters(fields.unnamed.iter().collect::<Vec<_>>(), &data_enum.enum_token, DEFAULT_ELEMENT_FORMATTER.to_string(), true);
                 match extracted_field_names {
                     Ok((ids, format_strings, formatters_counts)) => {
                         let field_arm = {
+                            let field_value = &variant.ident;
                             let token_streams: Vec<TokenStream> = formatters_counts.into_iter().zip(&ids).map(| (n_formatters, name)| {
                                 match n_formatters {
-                                    1 => quote!{ ,#name.#formatter() }, 
-                                    2 => quote!{ ,stringify!(#name), #name.#formatter() },
+                                    1 => quote!{ ,single.#formatter() }, 
+                                    2 => quote!{ ,stringify!(#field_value), single.#formatter() },
                                     _ => quote!{},
                                 }
                             }).collect();
-                            let field_value = &variant.ident;
                             quote! {
-                                #(#name::#field_value(single)  => repr += &format!(#format_strings #token_streams)),*
+                                #(#name::#field_value(single)  => repr += &format!(#format_strings #token_streams),)*
                             }
                         };
                         Ok(field_arm)
@@ -210,7 +206,7 @@ fn generate_fmt_impl_for_enum(
                 }
             }
             Fields::Named(fields) => {
-                println!("Named");
+                println!("Named: {:?}\n", variant_name);
                 let extracted_field_names = extract_field_formatters(fields.named.iter().collect::<Vec<_>>(), &data_enum.enum_token, DEFAULT_ELEMENT_FORMATTER.to_string(), true);
                 match extracted_field_names {
                     Ok((ids, format_strings, formatters_counts)) => {
@@ -224,7 +220,7 @@ fn generate_fmt_impl_for_enum(
                                     
                                 }).collect();
                             quote! {
-                                #(Self::#variant_name { #ids } => repr += &format!(#format_strings #token_streams)),*
+                                #(Self::#variant_name { #ids } => repr += &format!(#format_strings #token_streams),)*
                             }
                         };
                         Ok(field_arm)
@@ -256,13 +252,15 @@ fn generate_fmt_impl_for_enum(
             .join("\n")
     );
 
-    Ok(quote! {
+    let final_stream = quote! {
         let mut repr = "".to_string();
         match self {
             #(#arms)*
         }
         let repr = #token_stream;
-    })
+    };
+    println!("\n{}\n", final_stream.to_string());
+    Ok(final_stream)
 }
 
 
@@ -306,10 +304,6 @@ fn generate_fmt_impl_for_struct(
         },
         Err(e) => Err(e),
     }?;
-    println!(
-        "field arms: {}",
-        field_arms.to_string()
-    );
 
     let formatters = ident_formatter.to_string().matches("{}").count()
     - ident_formatter.to_string().matches("{{}}").count();
@@ -324,12 +318,14 @@ fn generate_fmt_impl_for_struct(
         )), 
     };
 
-    Ok(quote! {
+    let final_stream=quote! {
         let mut repr = "".to_string();
         #field_arms
 
         let repr = #token_stream;
-    })
+    };
+    println!("\n{}\n", final_stream.to_string());
+    Ok(final_stream)
 }
 
 
