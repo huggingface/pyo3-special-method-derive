@@ -220,7 +220,8 @@ fn generate_fmt_impl_for_enum(
                                     
                                 }).collect();
                             quote! {
-                                Self::#variant_name {#(#ids,)*} => repr += &format!(#(#format_strings #token_streams,)*)
+                                // For each arm format is gonna be hard to specify no?
+                                Self::#variant_name {#(#ids,)*} => repr += &format!(#(#format_strings),* #(#token_streams,)*),
                             }
                         };
                         Ok(field_arm)
