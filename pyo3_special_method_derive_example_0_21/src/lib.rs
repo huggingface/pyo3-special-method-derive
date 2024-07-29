@@ -6,7 +6,7 @@ use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 
 #[derive(Clone, AutoDisplay, PartialEq, Eq, Hash, Default, AutoDebug)]
-#[format(fmt = "")] // We don't want CityName(Paris), but directly Paris
+#[format(fmt = "{}")] // We don't want CityName(Paris), but directly Paris
 pub enum CityName {
     Paris,
     #[default]
@@ -58,7 +58,7 @@ impl City {
 #[pyclass]
 #[derive(Str, Clone, AutoDebug)]
 pub struct PyCity {
-    pub city: Arc<RwLock<City>>, // TODO currently this printed as PyCity(city=RwLock { data: City(name=CityName(City.London), addresses={}), poisoned: false, .. })
+    pub city: Arc<RwLock<City>>,
 }
 
 #[pymethods]
