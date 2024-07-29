@@ -160,7 +160,6 @@ fn generate_fmt_impl_for_enum(
                                 };
                                 token_stream
                             }).collect();
-                            let field_value = &variant.ident;
                             quote! {
                                 Self::#variant_name => repr += &format!(#(#format_strings),*, #(#token_streams),*),
                             }
