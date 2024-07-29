@@ -116,15 +116,9 @@ where T: Spanned+std::fmt::Debug{
             Ok(is_skipped) => {
 
                 if !is_skipped{
-                    let formatter_str = default_variamt_fmt.to_string();
+                    let mut formatter_str = default_variamt_fmt.to_string();
                     let formatters = formatter_str.matches("{}").count() - formatter_str.matches("{{}}").count();
-
-                    if is_first && !is_enum{
-                        default_variamt_fmt = quote! { , #default_variamt_fmt};
-                        is_first = false
-                    }
-                    
-                    
+                    if !is_first { formatter_str.push_str(", ")} else {is_first = false}
                     if formatters > 2 {
                         return Err(syn::Error::new(token.span(), "You can specify at most 2 formatters, one for the field name, and one for it's string representation"));
                     };
@@ -229,7 +223,7 @@ fn generate_fmt_impl_for_enum(
                                 }).collect();
                             quote! {
                                 // For each arm format is gonna be hard to specify no?
-                                Self::#variant_name {#(#ids,)*} => repr += &format!(#(#format_strings)* #(#token_streams)*),
+                                Self::#variant_name {#(#ids,)*} => repr += &format!(concat!(#(#format_strings, ", ", )*) #(#token_streams)*),
                             }
                         };
                         Ok(field_arm)
