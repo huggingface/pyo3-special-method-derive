@@ -1,6 +1,4 @@
-use crate::{ATTR_NAMESPACE_FORMATTER, ATTR_NAMESPACE_NO_FMT_SKIP, ATTR_NAMESPACE_REPR,
-    ATTR_NAMESPACE_STR,
-};
+use crate::ATTR_NAMESPACE_FORMATTER;
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::parse::{Parse, ParseStream};
@@ -73,6 +71,7 @@ pub fn find_display_attribute(attr: &Attribute) -> Result<Option<TokenStream>, E
     }
 }
 
+// uses `find_display_attribute` to decide whether the field should be skipped or not
 pub fn skip_formatting<I>(
     attrs: I,
     default_variant_fmt: &mut TokenStream,
@@ -94,8 +93,10 @@ where I: IntoIterator<Item = Attribute>,
     };
     Ok(is_skipped)
 }
+
 // Extract the string that should be used to format each fields. "{}", or "MyStruct", or "{}.{}"
-// By calling `find_display_attribute` whenever `#[format(fmt="")` is found as attr of a field 
+// By calling `find_display_attribute` whenever `#[format(fmt="")` is found as attr of a field.
+// If a field should be skipped, then it simply won't appear in the vec of ident string and usize.
 pub fn extract_field_formatters<T>(fields: Vec<&Field>, token: &T, variant_fmt: String)  -> Result<(Vec<Option<Ident>>, Vec<String>, Vec<usize>), Error> 
 where T: Spanned{
     let mut ids: Vec<Option<Ident>> = Vec::new();
@@ -153,12 +154,11 @@ fn generate_fmt_impl_for_enum(
                     Ok((ids, format_strings, formatters_counts)) => {
                         let field_arm = {
                             let token_streams: Vec<TokenStream> = formatters_counts.into_iter().zip(&ids).map(| (n_formatters, name)| {
-                                let token_stream = match n_formatters {
+                                match n_formatters {
                                     1 => quote!{ #name.#formatter() }, 
                                     2 => quote!{ stringify!(#variant_name), #name.#formatter() },
                                     _ => quote!{},
-                                };
-                                token_stream
+                                }
                             }).collect();
                             quote! {
                                 Self::#variant_name => repr += &format!(#(#format_strings),*, #(#token_streams),*),
@@ -166,7 +166,7 @@ fn generate_fmt_impl_for_enum(
                         };
                         Ok(field_arm)
                     },
-                    Err(e) => return Err(e),
+                    Err(e) => Err(e),
                 }
             }
             syn::Fields::Unnamed(fields) => {
@@ -175,12 +175,11 @@ fn generate_fmt_impl_for_enum(
                     Ok((ids, format_strings, formatters_counts)) => {
                         let field_arm = {
                             let token_streams: Vec<TokenStream> = formatters_counts.into_iter().zip(&ids).map(| (n_formatters, name)| {
-                                let token_stream = match n_formatters {
+                                match n_formatters {
                                     1 => quote!{ #name.#formatter() }, 
                                     2 => quote!{ stringify!(#name), #name.#formatter() },
                                     _ => quote!{},
-                                };
-                                token_stream
+                                }
                             }).collect();
                             let field_value = &variant.ident;
                             quote! {
@@ -189,7 +188,7 @@ fn generate_fmt_impl_for_enum(
                         };
                         Ok(field_arm)
                     },
-                    Err(e) => return Err(e),
+                    Err(e) => Err(e),
                 }
             }
             Fields::Named(fields) => {
@@ -198,12 +197,12 @@ fn generate_fmt_impl_for_enum(
                     Ok((ids, format_strings, formatters_counts)) => {
                         let field_arm = {
                             let token_streams: Vec<TokenStream> = formatters_counts.into_iter().zip(&ids).map(| (n_formatters, name)| {
-                                let token_stream = match n_formatters {
+                                match n_formatters {
                                         1 => quote!{ #name.#formatter() }, 
                                         2 => quote!{ stringify!(#name), #name.#formatter() },
                                         _ => quote!{},
-                                    };
-                                    token_stream
+                                    }
+                                    
                                 }).collect();
                             quote! {
                                 Self::#variant_name { #(#ids),* } => repr += &format!(#(#format_strings),*, #(#token_streams),*),
