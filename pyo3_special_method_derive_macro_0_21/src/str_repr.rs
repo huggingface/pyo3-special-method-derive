@@ -201,7 +201,7 @@ fn generate_fmt_impl_for_enum(
                             }).collect();
                             let field_value = &variant.ident;
                             quote! {
-                                #(#name::#field_value(single)  => repr += &format!(#format_strings #token_streams)),*,
+                                #(#name::#field_value(single)  => repr += &format!(#format_strings #token_streams)),*
                             }
                         };
                         Ok(field_arm)
@@ -224,7 +224,7 @@ fn generate_fmt_impl_for_enum(
                                     
                                 }).collect();
                             quote! {
-                                #(Self::#variant_name { #ids } => repr += &format!(#format_strings #token_streams)),*,
+                                #(Self::#variant_name { #ids } => repr += &format!(#format_strings #token_streams)),*
                             }
                         };
                         Ok(field_arm)
@@ -299,7 +299,7 @@ fn generate_fmt_impl_for_struct(
                     }).collect();
                 quote! {
                     // TODO name should be the variant fmt here
-                    #(repr += &format!(#format_strings #token_streams)),*;
+                    #(repr += &format!(#format_strings #token_streams));*;
                 }
             };
             Ok(field_arm)
