@@ -106,6 +106,7 @@ where T: Spanned+std::fmt::Debug{
     let mut format_strings: Vec<String> = Vec::new();
     let mut formatters_counts: Vec<usize> = Vec::new();
     let mut default_variamt_fmt =  quote!{ #variant_fmt };
+    let mut is_first = true;
     for field in fields{
         let mut visibility = matches!(field.vis, Visibility::Public(_));
         if is_enum{
@@ -113,12 +114,19 @@ where T: Spanned+std::fmt::Debug{
         }
         match skip_formatting(field.attrs.clone(), &mut default_variamt_fmt, !visibility) { 
             Ok(is_skipped) => {
-                
+
                 if !is_skipped{
                     let formatter_str = default_variamt_fmt.to_string();
                     let formatters = formatter_str.matches("{}").count() - formatter_str.matches("{{}}").count();
+
+                    if is_first && !is_enum{
+                        default_variamt_fmt = quote! { , #default_variamt_fmt};
+                        is_first = false
+                    }
+                    
+                    
                     if formatters > 2 {
-                        return Err(syn::Error::new(token.clone().span(), "You can specify at most 2 formatters, one for the field name, and one for it's string representation"));
+                        return Err(syn::Error::new(token.span(), "You can specify at most 2 formatters, one for the field name, and one for it's string representation"));
                     };
                     ids.push(field.ident.clone());
                     format_strings.push(formatter_str);
