@@ -2,6 +2,7 @@ use crate::ATTR_NAMESPACE_FORMATTER;
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::parse::{Parse, ParseStream};
+use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
 use syn::{Attribute, DeriveInput, Error, Field, Fields, Ident, LitStr, Token, Visibility};
 
@@ -110,16 +111,14 @@ where
 // By calling `find_display_attribute` whenever `#[format(fmt="")` is found as attr of a field.
 // If a field should be skipped, then it simply won't appear in the vec of ident string and usize.
 #[allow(clippy::type_complexity)]
-pub fn extract_field_formatters<T, I>(
-    fields: Vec<&Field>,
-    attrs: I,
+pub fn extract_field_formatters<T>(
+    fields: Punctuated<Field, syn::token::Comma>,
     token: &T,
     variant_fmt: String,
     is_enum: bool,
 ) -> Result<(Vec<Option<Ident>>, Vec<String>, Vec<usize>), Error>
 where
     T: Spanned + std::fmt::Debug,
-    I: IntoIterator<Item = Attribute> + Clone + std::fmt::Debug,
 {
     let mut ids: Vec<Option<Ident>> = Vec::new();
     let mut format_strings: Vec<String> = Vec::new();
@@ -131,17 +130,14 @@ where
         if is_enum {
             visibility = true;
         }
-        println!(
-            "Processing filed: {:?} with attrs: {:?}\n",
-            field.ident,
-            attrs.clone()
-        );
-        match skip_formatting(attrs.clone(), &mut default_variamt_fmt, !visibility) {
+
+        match skip_formatting(field.attrs.clone(), &mut default_variamt_fmt, !visibility) {
             Ok(is_skipped) => {
                 if !is_skipped {
                     let mut formatter_str = default_variamt_fmt.to_string();
                     let formatters =
                         formatter_str.matches("{}").count() - formatter_str.matches("{{}}").count();
+
                     if !is_first {
                         formatter_str.push_str(", ")
                     } else {
@@ -211,7 +207,7 @@ fn generate_fmt_impl_for_enum(
                 extracted_field_names
             }
             syn::Fields::Unnamed(fields) => {
-                let extracted_field_names = extract_field_formatters(fields.unnamed.iter().collect::<Vec<_>>(), variant.attrs.clone(),  &data_enum.enum_token, DEFAULT_ELEMENT_FORMATTER.to_string(), true);
+                let extracted_field_names = extract_field_formatters(fields.unnamed, &data_enum.enum_token, DEFAULT_ELEMENT_FORMATTER.to_string(), true);
                 match extracted_field_names {
                     Ok((_, format_strings, formatters_counts)) => {
                         Ok({
@@ -232,7 +228,7 @@ fn generate_fmt_impl_for_enum(
                 }
             }
             Fields::Named(fields) => {
-                let extracted_field_names = extract_field_formatters(fields.named.iter().collect::<Vec<_>>(), variant.attrs.clone(), &data_enum.enum_token, DEFAULT_ELEMENT_FORMATTER.to_string(), true);
+                let extracted_field_names = extract_field_formatters(fields.named , &data_enum.enum_token, DEFAULT_ELEMENT_FORMATTER.to_string(), true);
                 match extracted_field_names {
                     Ok((ids, format_strings, formatters_counts)) => {
                         Ok({
@@ -290,22 +286,17 @@ fn generate_fmt_impl_for_struct(
     let mut ident_formatter = quote! { #DEFAULT_STRUCT_IDENT_FORMATTER };
     if let Some(attrs) = string_formatter {
         match skip_formatting(attrs.clone(), &mut ident_formatter, false) {
-            Ok(_) => {}
+            Ok(_) => {
+                println!("\n\nStruct ident formatter {}", ident_formatter);
+            }
             Err(error) => return Err(error),
         }
     }
-    let fields = data_struct.fields.iter().collect::<Vec<_>>();
-    let field_arms = fields
-        .iter()
-        .map(|field| {
-            let formatter = if is_repr {
-                quote! { fmt_debug }
-            } else {
-                quote! { fmt_display }
-            };
+    let field_arms = match &data_struct.fields {
+        Fields::Named(fields) => {
+            let field_names = fields.named.iter().collect::<Vec<_>>();
             let extracted_field_names = extract_field_formatters(
-                fields.clone(),
-                field.attrs.clone(),
+                fields.named,
                 &data_struct.struct_token,
                 DEFAULT_ELEMENT_FORMATTER.to_string(),
                 false,
@@ -337,8 +328,11 @@ fn generate_fmt_impl_for_struct(
                 }),
                 Err(e) => Err(e),
             }
-        })
-        .collect::<syn::Result<Vec<_>>>()?;
+        }
+        Fields::Unnamed(unnamed_fields) => Ok(quote! {}),
+        Fields::Unit => Ok(quote! {}),
+    }
+    .collect::<syn::Result<Vec<_>>>()?;
 
     let formatters = ident_formatter.to_string().matches("{}").count()
         - ident_formatter.to_string().matches("{{}}").count();

@@ -7,7 +7,7 @@ use std::sync::{Arc, RwLock};
 
 type Paris = String;
 
-#[derive(Clone, AutoDisplay, PartialEq, Eq, Hash, Default, AutoDebug)]
+#[derive(Clone, PartialEq, Eq, Hash, Default, AutoDebug, AutoDisplay)]
 #[format(fmt = "{}")] // We don't want CityName(Paris), but directly Paris
 pub enum CityName {
     Paris(Paris),
@@ -33,7 +33,9 @@ impl FromStr for CityName {
 #[derive(Default, AutoDisplay, AutoDebug)]
 #[format(fmt = "{}({})")]
 pub struct City {
+    #[format(fmt = "Cityname")] // this should error out
     pub name: CityName,
+    #[format(fmt = "adress={}")]
     addresses: HashMap<String, Arc<RwLock<PyAddress>>>,
 }
 
@@ -98,9 +100,9 @@ pub enum PyAddress {
 #[derive(Dir, Str, Repr, Getattr, Dict, Clone)]
 pub struct Person {
     pub name: String,
-    #[format]
+    #[format(fmt = "age")]
     age: u8,
-    #[format(fmt="my_adress={}")]
+    #[format(fmt = "my_adress={}")]
     address: Arc<RwLock<PyAddress>>,
 }
 
