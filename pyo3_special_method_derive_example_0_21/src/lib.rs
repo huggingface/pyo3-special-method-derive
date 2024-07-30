@@ -10,7 +10,11 @@ type Paris = String;
 #[derive(Clone, PartialEq, Eq, Hash, Default, AutoDebug, AutoDisplay)]
 #[format(fmt = "{}")] // We don't want CityName(Paris), but directly Paris
 pub enum CityName {
-    Paris(Paris),
+    #[format(fmt="NOT PARIS OG?")]
+    Paris(
+        Paris
+    ),
+    Geneva(String),
     #[default]
     London,
     #[format(fmt = "NYC the best city in the world")]
