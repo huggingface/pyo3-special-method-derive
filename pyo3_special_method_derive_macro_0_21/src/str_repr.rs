@@ -1,11 +1,8 @@
-use std::collections::btree_map::Keys;
-
 use crate::ATTR_NAMESPACE_FORMATTER;
 use proc_macro2::TokenStream;
-use quote::{quote, ToTokens};
+use quote::quote;
 use syn::parse::{Parse, ParseStream};
 use syn::spanned::Spanned;
-use syn::token::Final;
 use syn::{Attribute, DeriveInput, Error, Field, Fields, Ident, LitStr, Token, Visibility};
 
 const DEFAULT_ENUM_IDENT_FORMATTER: &str = "{}.{}";
@@ -104,6 +101,7 @@ where
 // Extract the string that should be used to format each fields. "{}", or "MyStruct", or "{}.{}"
 // By calling `find_display_attribute` whenever `#[format(fmt="")` is found as attr of a field.
 // If a field should be skipped, then it simply won't appear in the vec of ident string and usize.
+#[allow(clippy::type_complexity)]
 pub fn extract_field_formatters<T, I>(
     fields: Vec<&Field>,
     attrs: I,
@@ -203,7 +201,7 @@ fn generate_fmt_impl_for_enum(
                 let extracted_field_names = extract_field_formatters(fields.unnamed.iter().collect::<Vec<_>>(), variant.attrs.clone(),  &data_enum.enum_token, DEFAULT_ELEMENT_FORMATTER.to_string(), true);
                 match extracted_field_names {
                     Ok((_, format_strings, formatters_counts)) => {
-                        let field_arm = {
+                        Ok({
                             let field_value = &variant.ident;
                             let token_streams: Vec<TokenStream> = formatters_counts.into_iter().map(| n_formatters | {
                                 match n_formatters {
@@ -215,8 +213,7 @@ fn generate_fmt_impl_for_enum(
                             quote! {
                                 #(#name::#field_value(single)  => repr += &format!(#format_strings #token_streams),)*
                             }
-                        };
-                        Ok(field_arm)
+                        })
                     },
                     Err(e) => Err(e),
                 }
@@ -225,10 +222,10 @@ fn generate_fmt_impl_for_enum(
                 let extracted_field_names = extract_field_formatters(fields.named.iter().collect::<Vec<_>>(), variant.attrs.clone(), &data_enum.enum_token, DEFAULT_ELEMENT_FORMATTER.to_string(), true);
                 match extracted_field_names {
                     Ok((ids, format_strings, formatters_counts)) => {
-                        let field_arm = {
+                        Ok({
                             let token_streams: Vec<TokenStream> = formatters_counts.into_iter().zip(&ids).map(| (n_formatters, name)| {
                                 match n_formatters {
-                                        1 => quote!{ ,#name.#formatter() }, 
+                                        1 => quote!{ ,#name.#formatter() },
                                         2 => quote!{ ,stringify!(#name), #name.#formatter() },
                                         _ => quote!{},
                                     }
@@ -237,8 +234,7 @@ fn generate_fmt_impl_for_enum(
                                 // For each arm format is gonna be hard to specify no?
                                 Self::#variant_name {#(#ids,)*} => repr += &format!(concat!(#(#format_strings, "", )*) #(#token_streams)*),
                             }
-                        };
-                        Ok(field_arm)
+                        })
                     },
                     Err(e) => Err(e),
                 }
@@ -301,39 +297,33 @@ fn generate_fmt_impl_for_struct(
                 DEFAULT_ELEMENT_FORMATTER.to_string(),
                 false,
             );
-            let field_arms = match extracted_field_names {
-                Ok((ids, format_strings, formatters_counts)) => {
-                    let field_arm = {
-                        let token_streams: Vec<TokenStream> = formatters_counts
-                            .into_iter()
-                            .zip(&ids)
-                            .enumerate()
-                            .map(|(idx, (n_formatters, name))| {
-                                let ident = match name {
-                                    Some(ident) => quote! { #ident },
-                                    None => {
-                                        let ident = syn::Index::from(idx);
-                                        quote!(#ident)
-                                    }
-                                };
-                                let token_stream = match n_formatters {
-                                    1 => quote! { ,self.#ident.#formatter() },
-                                    2 => quote! { ,stringify!(#ident), self.#ident.#formatter()},
-                                    _ => quote! {},
-                                };
-                                token_stream
-                            })
-                            .collect();
-                        quote! {
-                            // TODO name should be the variant fmt here
-                            #(repr += &format!(#format_strings #token_streams));*;
-                        }
-                    };
-                    Ok(field_arm)
-                }
+            match extracted_field_names {
+                Ok((ids, format_strings, formatters_counts)) => Ok({
+                    let token_streams: Vec<TokenStream> = formatters_counts
+                        .into_iter()
+                        .zip(&ids)
+                        .enumerate()
+                        .map(|(idx, (n_formatters, name))| {
+                            let ident = match name {
+                                Some(ident) => quote! { #ident },
+                                None => {
+                                    let ident = syn::Index::from(idx);
+                                    quote!(#ident)
+                                }
+                            };
+                            match n_formatters {
+                                1 => quote! { ,self.#ident.#formatter() },
+                                2 => quote! { ,stringify!(#ident), self.#ident.#formatter()},
+                                _ => quote! {},
+                            }
+                        })
+                        .collect();
+                    quote! {
+                        #(repr += &format!(#format_strings #token_streams));*;
+                    }
+                }),
                 Err(e) => Err(e),
-            };
-            field_arms
+            }
         })
         .collect::<syn::Result<Vec<_>>>()?;
 

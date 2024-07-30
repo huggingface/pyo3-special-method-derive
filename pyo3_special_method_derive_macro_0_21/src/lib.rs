@@ -7,9 +7,6 @@ use str_repr::{impl_formatter, DeriveType};
 use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident, Visibility};
 
 const ATTR_NAMESPACE: &str = "pyo3_smd";
-const ATTR_NAMESPACE_STR: &str = "pyo3_smd_str";
-const ATTR_NAMESPACE_REPR: &str = "pyo3_smd_repr";
-const ATTR_NAMESPACE_NO_FMT_SKIP: &str = "pyo3_fmt_no_skip";
 const ATTR_NAMESPACE_FORMATTER: &str = "format";
 
 fn implements_debug(ty: &Ident) -> bool {
