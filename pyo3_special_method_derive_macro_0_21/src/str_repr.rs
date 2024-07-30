@@ -207,7 +207,7 @@ fn generate_fmt_impl_for_enum(
                 extracted_field_names
             }
             syn::Fields::Unnamed(fields) => {
-                let extracted_field_names = extract_field_formatters(fields.unnamed, &data_enum.enum_token, DEFAULT_ELEMENT_FORMATTER.to_string(), true);
+                let extracted_field_names = extract_field_formatters(fields.unnamed.clone(), &data_enum.enum_token, DEFAULT_ELEMENT_FORMATTER.to_string(), true);
                 match extracted_field_names {
                     Ok((_, format_strings, formatters_counts)) => {
                         Ok({
@@ -228,7 +228,7 @@ fn generate_fmt_impl_for_enum(
                 }
             }
             Fields::Named(fields) => {
-                let extracted_field_names = extract_field_formatters(fields.named , &data_enum.enum_token, DEFAULT_ELEMENT_FORMATTER.to_string(), true);
+                let extracted_field_names = extract_field_formatters(fields.named.clone() , &data_enum.enum_token, DEFAULT_ELEMENT_FORMATTER.to_string(), true);
                 match extracted_field_names {
                     Ok((ids, format_strings, formatters_counts)) => {
                         Ok({
@@ -284,6 +284,11 @@ fn generate_fmt_impl_for_struct(
     string_formatter: Option<&Vec<Attribute>>,
 ) -> syn::Result<proc_macro2::TokenStream> {
     let mut ident_formatter = quote! { #DEFAULT_STRUCT_IDENT_FORMATTER };
+    let formatter = if is_repr {
+        quote! { fmt_debug }
+    } else {
+        quote! { fmt_display }
+    };
     if let Some(attrs) = string_formatter {
         match skip_formatting(attrs.clone(), &mut ident_formatter, false) {
             Ok(_) => {
@@ -294,9 +299,8 @@ fn generate_fmt_impl_for_struct(
     }
     let field_arms = match &data_struct.fields {
         Fields::Named(fields) => {
-            let field_names = fields.named.iter().collect::<Vec<_>>();
             let extracted_field_names = extract_field_formatters(
-                fields.named,
+                fields.named.clone(),
                 &data_struct.struct_token,
                 DEFAULT_ELEMENT_FORMATTER.to_string(),
                 false,
@@ -331,8 +335,7 @@ fn generate_fmt_impl_for_struct(
         }
         Fields::Unnamed(unnamed_fields) => Ok(quote! {}),
         Fields::Unit => Ok(quote! {}),
-    }
-    .collect::<syn::Result<Vec<_>>>()?;
+    }?;
 
     let formatters = ident_formatter.to_string().matches("{}").count()
         - ident_formatter.to_string().matches("{{}}").count();
@@ -351,7 +354,7 @@ fn generate_fmt_impl_for_struct(
 
     let final_stream = quote! {
         let mut repr = "".to_string();
-        #(#field_arms)*
+        #field_arms
 
         let repr = #token_stream;
     };
