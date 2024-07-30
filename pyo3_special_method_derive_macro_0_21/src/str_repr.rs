@@ -94,9 +94,7 @@ where
                     is_skipped = false
                 }
                 Err(error) => return Err(error),
-                Ok(None) => {
-                    is_skipped = true
-                } // this is where we skip
+                Ok(None) => is_skipped = true, // this is where we skip
             }
             break;
         }
@@ -176,7 +174,7 @@ fn generate_fmt_impl_for_enum(
     let formatters = ident_formatter.to_string().matches("{}").count()
         - ident_formatter.to_string().matches("{{}}").count();
     if formatters == 0 {
-        return Ok(quote!{ let mut repr = #ident_formatter.to_string();})
+        return Ok(quote! { let mut repr = #ident_formatter.to_string();});
     }
 
     let variants = data_enum.variants.iter().collect::<Vec<_>>();
@@ -261,8 +259,6 @@ fn generate_fmt_impl_for_enum(
         }
     }).collect::<syn::Result<Vec<_>>>()?;
 
-
-
     let token_stream = match formatters {
         0 => quote! { format!(#ident_formatter) },
         1 => quote! { format!(#ident_formatter, repr) },
@@ -307,7 +303,7 @@ fn generate_fmt_impl_for_struct(
     let formatters = ident_formatter.to_string().matches("{}").count()
         - ident_formatter.to_string().matches("{{}}").count();
     if formatters == 0 {
-        return Ok(quote!{ let mut repr = #ident_formatter.to_string();})
+        return Ok(quote! { let mut repr = #ident_formatter.to_string();});
     }
 
     let field_arms = match &data_struct.fields {
@@ -349,7 +345,6 @@ fn generate_fmt_impl_for_struct(
         Fields::Unnamed(_unnamed_fields) => Ok(quote! {}),
         Fields::Unit => Ok(quote! {}),
     }?;
-
 
     let token_stream = match formatters {
         0 => quote! { format!(#ident_formatter) },
