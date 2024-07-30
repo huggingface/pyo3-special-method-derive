@@ -64,7 +64,10 @@ pub fn find_display_attribute(attr: &Attribute) -> Result<Option<TokenStream>, E
                     "Error parsing, should be either `#[format]`, , `#[format(skip)]` or `#[format(fmt=\"\")]`",
                 ))
             }
-            _ => Ok(None),
+            _ => Err(syn::Error::new_spanned(
+                attr,
+                "You have to specify fmt = ...",
+            )),
         },
         Err(_) => Ok(Some(quote! {})), // this is #[format], we do want to force formatting
     }
@@ -85,16 +88,21 @@ where
             match find_display_attribute(&attr) {
                 Ok(Some(formatter)) => {
                     if formatter.to_string() != "" {
-                        *default_variant_fmt = formatter
+                        *default_variant_fmt = formatter.clone()
                     };
+                    println! {"Found formatter: {}", formatter.clone()};
                     is_skipped = false
                 }
                 Err(error) => return Err(error),
-                Ok(None) => is_skipped = true, // this is where we skip
+                Ok(None) => {
+                    println!("Ok(None)");
+                    is_skipped = true
+                } // this is where we skip
             }
             break;
         }
     }
+    println!("So is it skipped: {}", is_skipped);
     Ok(is_skipped)
 }
 
@@ -111,7 +119,7 @@ pub fn extract_field_formatters<T, I>(
 ) -> Result<(Vec<Option<Ident>>, Vec<String>, Vec<usize>), Error>
 where
     T: Spanned + std::fmt::Debug,
-    I: IntoIterator<Item = Attribute> + Clone,
+    I: IntoIterator<Item = Attribute> + Clone + std::fmt::Debug,
 {
     let mut ids: Vec<Option<Ident>> = Vec::new();
     let mut format_strings: Vec<String> = Vec::new();
@@ -123,6 +131,11 @@ where
         if is_enum {
             visibility = true;
         }
+        println!(
+            "Processing filed: {:?} with attrs: {:?}\n",
+            field.ident,
+            attrs.clone()
+        );
         match skip_formatting(attrs.clone(), &mut default_variamt_fmt, !visibility) {
             Ok(is_skipped) => {
                 if !is_skipped {
