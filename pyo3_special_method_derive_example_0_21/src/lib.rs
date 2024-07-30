@@ -60,7 +60,8 @@ impl City {
 #[pyclass]
 #[derive(Str, Clone, AutoDebug)]
 pub struct PyCity {
-    pub city: Arc<RwLock<City>>,
+    #[format]
+    city: Arc<RwLock<City>>,
 }
 
 #[pymethods]
@@ -97,8 +98,9 @@ pub enum PyAddress {
 #[derive(Dir, Str, Repr, Getattr, Dict, Clone)]
 pub struct Person {
     pub name: String,
-    #[pyo3_fmt_no_skip]
+    #[format]
     age: u8,
+    #[format(fmt="my_adress={}")]
     address: Arc<RwLock<PyAddress>>,
 }
 
