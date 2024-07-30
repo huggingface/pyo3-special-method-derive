@@ -91,7 +91,6 @@ where
                     if formatter.to_string() != "" {
                         *default_variant_fmt = formatter.clone()
                     };
-                    println! {"Found formatter: {}", formatter.clone()};
                     is_skipped = false
                 }
                 Err(error) => return Err(error),
@@ -131,7 +130,6 @@ where
 
         match skip_formatting(field.attrs.clone(), &mut default_variamt_fmt, !visibility) {
             Ok(is_skipped) => {
-                println!("Attributes: {:?} ", field.attrs.clone());
                 if !is_skipped {
                     let mut formatter_str = default_variamt_fmt.to_string();
                     let formatters =
@@ -212,8 +210,7 @@ fn generate_fmt_impl_for_enum(
                 };
                 extracted_field_names
             }
-            syn::Fields::Unnamed(fields) => {
-                println!("Unamed Attributes: {:?} ", variant.attrs.clone());
+            syn::Fields::Unnamed(_fields) => {
                 let mut default_variamt_fmt =  quote! { #DEFAULT_ENUM_IDENT_FORMATTER};
                 let field_value = &variant.ident;
                 let extracted_field_names = match skip_formatting(variant.attrs.clone(), &mut default_variamt_fmt, false) {
@@ -241,7 +238,6 @@ fn generate_fmt_impl_for_enum(
                 extracted_field_names
             }
             Fields::Named(fields) => {
-                println!("**************** Named Attributes: \n{:?} \n*************************", variant.attrs.clone());
                 let extracted_field_names = extract_field_formatters(fields.named.clone() , &data_enum.enum_token, DEFAULT_ELEMENT_FORMATTER.to_string(), true);
                 match extracted_field_names {
                     Ok((ids, format_strings, formatters_counts)) => {
@@ -286,7 +282,6 @@ fn generate_fmt_impl_for_enum(
         }
         let repr = #token_stream;
     };
-    println!("Final stream: {}", final_stream.to_string());
     Ok(final_stream)
 }
 
@@ -351,7 +346,7 @@ fn generate_fmt_impl_for_struct(
                 Err(e) => Err(e),
             }
         }
-        Fields::Unnamed(unnamed_fields) => Ok(quote! {}),
+        Fields::Unnamed(_unnamed_fields) => Ok(quote! {}),
         Fields::Unit => Ok(quote! {}),
     }?;
 
