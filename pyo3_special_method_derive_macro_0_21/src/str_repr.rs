@@ -117,7 +117,6 @@ where T: Spanned+std::fmt::Debug, I: IntoIterator<Item = Attribute> + Clone,
         }
         match skip_formatting(attrs.clone(), &mut default_variamt_fmt, !visibility) { 
             Ok(is_skipped) => {
-
                 if !is_skipped{
                     let mut formatter_str = default_variamt_fmt.to_string();
                     let formatters = formatter_str.matches("{}").count() - formatter_str.matches("{{}}").count();
@@ -285,16 +284,19 @@ fn generate_fmt_impl_for_struct(
     }
     let fields = data_struct.fields.iter().collect::<Vec<_>>();
     let field_arms = fields.iter().map(|field| {
+        println!("Fielde : {:?}", field);
         let formatter = if is_repr { quote! { fmt_debug } } else { quote! { fmt_display } };
-        let extracted_field_names = extract_field_formatters( fields.clone(), field.attrs.clone(), &data_struct.struct_token, DEFAULT_ELEMENT_FORMATTER.to_string(), false);
+        let extracted_field_names = extract_field_formatters( vec![*field], field.attrs.clone(), &data_struct.struct_token, DEFAULT_ELEMENT_FORMATTER.to_string(), false);
         let field_arms = match extracted_field_names {
             Ok((ids, format_strings, formatters_counts)) => {
+                println!("Extracted field_name : {:?}", ids);
                 let field_arm = {
                     let token_streams: Vec<TokenStream> = formatters_counts.into_iter().zip(&ids).enumerate().map(| (idx, (n_formatters, name))| {
                         let ident = match name {
                             Some(ident) => quote! { #ident },
                             None => {let ident = syn::Index::from(idx); quote!(#ident)},
                         };
+                        println!("Ident: {}", ident);
                         let token_stream = match n_formatters {
                                 1 => quote!{ ,self.#ident.#formatter() }, 
                                 2 => quote!{ ,stringify!(#ident), self.#ident.#formatter()},
