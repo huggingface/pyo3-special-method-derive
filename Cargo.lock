@@ -258,6 +258,7 @@ dependencies = [
  "pyo3",
  "quote",
  "quote_into",
+ "regex",
  "syn 2.0.72",
 ]
 

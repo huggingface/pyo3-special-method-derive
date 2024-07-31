@@ -12,6 +12,6 @@ quote = "1.0"
 proc-macro2 = "1.0"
 quote_into = "0.2.0"
 pyo3.workspace = true
-
+regex="1"
 [lib]
 proc-macro = true
