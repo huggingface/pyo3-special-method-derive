@@ -1068,7 +1068,7 @@ pub fn richcmp_derive_with(args: TokenStream, input: TokenStream) -> TokenStream
     };
 
     let expanded = quote! {
-        #input 
+        #input
 
         #[pyo3::pymethods]
         impl #name {
