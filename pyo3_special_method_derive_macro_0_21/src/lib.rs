@@ -7,7 +7,6 @@ use str_repr::{impl_formatter, DeriveType};
 use syn::{parse::Parser, parse_macro_input, Data, DeriveInput, Fields, Ident, Visibility};
 
 const ATTR_SKIP_NAMESPACE: &str = "skip";
-const ATTR_NAMESPACE_NO_FMT_SKIP: &str = "pyo3_fmt_no_skip";
 const ATTR_NAMESPACE_FORMATTER: &str = "format";
 const SKIP_ALL: &str = "All";
 
@@ -303,7 +302,7 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
     // Get the name of the struct
     let name = &input.ident;
 
-    let display_derive_body = match impl_formatter(&input, DeriveType::ForAutoDisplay) {
+    let display_derive_body = match impl_formatter(&input, DeriveType::ForAutoDisplay, "Str") {
         Ok(x) => x,
         Err(e) => e.into_compile_error(),
     };
@@ -371,7 +370,7 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 ///     hash: u32,
 /// }
 /// ```
-#[proc_macro_derive(AutoDisplay, attributes(pyo3_smd, pyo3_smd_str, auto_display))]
+#[proc_macro_derive(AutoDisplay, attributes(skip, auto_display))]
 pub fn auto_display(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
     let name = &input.ident;
@@ -536,11 +535,6 @@ pub fn auto_debug(input_stream: TokenStream) -> TokenStream {
     let name = &input.ident;
 
     let display_debug_derive_body = impl_formatter(&input, DeriveType::ForAutoDebug, "AutoDebug");
-
-    let display_debug_derive_body = match display_debug_derive_body {
-        Ok(x) => x,
-        Err(e) => e.into_compile_error(),
-    };
 
     let display_debug_derive_body = match display_debug_derive_body {
         Ok(x) => x,

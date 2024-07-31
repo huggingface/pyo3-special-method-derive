@@ -1,4 +1,4 @@
-use crate::ATTR_NAMESPACE_FORMATTER;
+use crate::{ATTR_NAMESPACE_FORMATTER, ATTR_SKIP_NAMESPACE, SKIP_ALL};
 use proc_macro2::TokenStream;
 use quote::quote;
 use syn::parse::{Parse, ParseStream};
@@ -79,6 +79,7 @@ pub fn find_display_attribute(attr: &Attribute) -> Result<Option<TokenStream>, E
 pub fn skip_formatting<I>(
     attrs: I,
     default_variant_fmt: &mut String,
+    macro_name: &str,
     is_skipped: bool,
 ) -> Result<bool, Error>
 where
@@ -97,7 +98,11 @@ where
                 Err(error) => return Err(error),
                 Ok(None) => is_skipped = true, // this is where we skip
             }
-            break;
+        } else if attr.path().is_ident(ATTR_SKIP_NAMESPACE)  {
+            let _ = attr.parse_nested_meta(|meta| {
+                is_skipped |= meta.path.is_ident(macro_name) || meta.path.is_ident(SKIP_ALL);
+                Ok(())
+            });
         }
     }
     Ok(is_skipped)
@@ -111,6 +116,7 @@ pub fn extract_field_formatters<T>(
     fields: Punctuated<Field, syn::token::Comma>,
     token: &T,
     variant_fmt: String,
+    macro_name: &str,
     is_enum: bool,
 ) -> Result<(Vec<Option<Ident>>, Vec<String>, Vec<usize>), Error>
 where
@@ -127,7 +133,7 @@ where
             visibility = true;
         }
 
-        match skip_formatting(field.attrs.clone(), &mut default_variamt_fmt, !visibility) {
+        match skip_formatting(field.attrs.clone(), &mut default_variamt_fmt, macro_name,!visibility) {
             Ok(is_skipped) => {
                 if !is_skipped {
                     let mut formatter_str = default_variamt_fmt.clone();
@@ -156,8 +162,9 @@ where
 fn generate_fmt_impl_for_enum(
     data_enum: &syn::DataEnum,
     name: &Ident,
-    is_repr: bool,
     string_formatter: Option<&Vec<Attribute>>,
+    macro_name: &str,
+    is_repr: bool,
 ) -> syn::Result<proc_macro2::TokenStream> {
     let formatter = if is_repr {
         quote! { fmt_debug }
@@ -167,7 +174,7 @@ fn generate_fmt_impl_for_enum(
     let mut enum_formatter = "{}.{}({})".to_string(); // by default pub enum A {...} we show A...
     // check if the user overwrites the enum_formatter: 
     if let Some(attrs) = string_formatter {
-        match skip_formatting(attrs.clone(), &mut enum_formatter, false) {
+        match skip_formatting(attrs.clone(), &mut enum_formatter, macro_name, false) {
             Ok(_) => {}
             Err(error) => return Err(error),
         }
@@ -202,7 +209,7 @@ fn generate_fmt_impl_for_enum(
             Fields::Unit => { // All of the variants are Unit
                 let mut default_unit_fmt =  "{}".to_string(); // Unit fields should always behave like this!
                 let field = variant;
-                let extracted_field_names = match skip_formatting(field.attrs.clone(), &mut default_unit_fmt, false) {
+                let extracted_field_names = match skip_formatting(field.attrs.clone(), &mut default_unit_fmt,macro_name, false) {
                     Ok(is_skipped) => {
                         if !is_skipped{
                             let formatter_str = default_variant_fmt.clone();
@@ -226,7 +233,7 @@ fn generate_fmt_impl_for_enum(
             syn::Fields::Unnamed(_fields) => { // Variants are Unit or Unnamed
                 let field_value = &variant.ident;
                 let mut default_unamed_fmt = default_variant_fmt.clone();
-                let extracted_field_names = match skip_formatting(variant.attrs.clone(), &mut default_unamed_fmt, false) {
+                let extracted_field_names = match skip_formatting(variant.attrs.clone(), &mut default_unamed_fmt, macro_name, false) {
                     Ok(is_skipped) => {
                         if !is_skipped{
                             let formatter_str = default_unamed_fmt;
@@ -249,7 +256,7 @@ fn generate_fmt_impl_for_enum(
                 extracted_field_names
             }
             Fields::Named(fields) => {
-                let extracted_field_names = extract_field_formatters(fields.named.clone() , &data_enum.enum_token, default_variant_fmt.clone(), true);
+                let extracted_field_names = extract_field_formatters(fields.named.clone() , &data_enum.enum_token, default_variant_fmt.clone(), macro_name, true);
                 match extracted_field_names {
                     Ok((ids, format_strings, formatters_counts)) => {
                         Ok({
@@ -297,8 +304,9 @@ fn generate_fmt_impl_for_enum(
 fn generate_fmt_impl_for_struct(
     data_struct: &syn::DataStruct,
     name: &Ident,
-    is_repr: bool,
     string_formatter: Option<&Vec<Attribute>>,
+    macro_name: &str,
+    is_repr: bool,
 ) -> syn::Result<proc_macro2::TokenStream> {
     let mut struct_formatter = "{}({})".to_string();
     let formatter = if is_repr {
@@ -307,7 +315,7 @@ fn generate_fmt_impl_for_struct(
         quote! { fmt_display }
     };
     if let Some(attrs) = string_formatter {
-        match skip_formatting(attrs.clone(), &mut struct_formatter, false) {
+        match skip_formatting(attrs.clone(), &mut struct_formatter,macro_name, false) {
             Ok(_) => {}
             Err(error) => return Err(error),
         }
@@ -325,6 +333,7 @@ fn generate_fmt_impl_for_struct(
                 fields.named.clone(),
                 &data_struct.struct_token,
                 DEFAULT_ELEMENT_FORMATTER.to_string(),
+                macro_name,
                 false,
             );
             match extracted_field_names {
@@ -381,13 +390,13 @@ fn generate_fmt_impl_for_struct(
 }
 
 macro_rules! create_body {
-    ($input:expr, $ident:expr, $is_repr:expr) => {
+    ($input:expr, $ident:expr, $is_repr:expr, $name:expr) => {
         match &$input.data {
             syn::Data::Struct(s) => {
-                generate_fmt_impl_for_struct(s, $ident, $is_repr, Some(&$input.attrs))
+                generate_fmt_impl_for_struct(s, $ident, Some(&$input.attrs), $name, $is_repr)
             }
             syn::Data::Enum(e) => {
-                generate_fmt_impl_for_enum(e, $ident, $is_repr, Some(&$input.attrs))
+                generate_fmt_impl_for_enum(e, $ident, Some(&$input.attrs), $name, $is_repr)
             }
             syn::Data::Union(u) => {
                 let error = syn::Error::new_spanned(u.union_token, "Unions are not supported");
@@ -396,11 +405,11 @@ macro_rules! create_body {
         }
     };
 }
-
 // Internal function to generate impls of the custom trait: `ExtensionRepr|ExtensionStr{ident}`
 pub(crate) fn impl_formatter(
     input: &DeriveInput,
     ty: DeriveType,
+    name: &str
 ) -> syn::Result<proc_macro2::TokenStream> {
     // Get the name of the struct
     let ident = &input.ident;
@@ -408,8 +417,8 @@ pub(crate) fn impl_formatter(
     let is_repr = matches!(ty, DeriveType::ForAutoDebug);
 
     // Create body for display and debug
-    let body_display = create_body!(input, ident, is_repr)?;
-    let body_debug = create_body!(input, ident, is_repr)?;
+    let body_display = create_body!(input, ident,is_repr, name)?;
+    let body_debug = create_body!(input, ident, is_repr, name)?;
 
     // Determine which traits to implement
     match ty {

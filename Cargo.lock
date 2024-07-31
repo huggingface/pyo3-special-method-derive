@@ -155,9 +155,7 @@ dependencies = [
 [[package]]
 name = "portable-atomic"
 version = "1.7.0"
-version = "1.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "da544ee218f0d287a911e9c99a39a8c9bc8fcad3cb8db5959940044ecfc67265"
 checksum = "da544ee218f0d287a911e9c99a39a8c9bc8fcad3cb8db5959940044ecfc67265"
 
 [[package]]
@@ -218,7 +216,6 @@ dependencies = [
  "pyo3-macros-backend",
  "quote",
  "syn 2.0.72",
- "syn 2.0.72",
 ]
 
 [[package]]
@@ -231,7 +228,6 @@ dependencies = [
  "proc-macro2",
  "pyo3-build-config",
  "quote",
- "syn 2.0.72",
  "syn 2.0.72",
 ]
 
@@ -371,9 +367,9 @@ dependencies = [
 
 [[package]]
 name = "target-lexicon"
-version = "0.12.15"
+version = "0.12.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4873307b7c257eddcb50c9bedf158eb669578359fb28428bef438fec8e6ba7c2"
+checksum = "61c41af27dd6d1e27b1b16b489db798443478cef1f06a660c96db617ba5de3b1"
 
 [[package]]
 name = "termcolor"
