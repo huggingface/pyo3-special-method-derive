@@ -6,9 +6,9 @@ use pyo3_special_method_derive_0_21::{Dir, Repr, Str};
 #[allow(dead_code)]
 struct WithFields {
     pub dora: u32,
-    #[pyo3_smd_repr(skip)]
+    #[skip(Repr)]
     pub my: String,
-    #[pyo3_smd_str(skip)]
+    #[skip(Str)]
     pub name: f32,
 }
 

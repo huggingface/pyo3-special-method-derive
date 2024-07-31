@@ -9,7 +9,7 @@ use pyo3_special_method_derive_0_21::Dict;
 #[allow(dead_code)]
 enum Tester {
     Alpha,
-    #[pyo3_smd(skip)]
+    #[skip(Dict)]
     Beta,
 }
 
