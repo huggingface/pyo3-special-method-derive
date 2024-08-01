@@ -218,12 +218,12 @@ fn generate_fmt_impl_for_enum(
                 let extracted_field_names = match skip_formatting(field.attrs.clone(), &mut default_unit_fmt,macro_name, false) {
                     Ok(is_skipped) => {
                         if !is_skipped{
-                            let formatter_str = default_variant_fmt.clone();
+                            let formatter_str = default_unit_fmt.clone();
                             let formatters = formatter_str.matches("{}").count() - formatter_str.matches("{{}}").count();
                             let token_stream = match formatters {
                                     0 => quote!{},
                                     1 => quote!{ ,stringify!(#variant_name)},
-                                    _ => return Err(syn::Error::new(variant.span(), "You can specify at most 1 formatters,for unit fields of enums")),
+                                    _ => return Err(syn::Error::new(variant.span(), format!("Found {} as the variant fmt. You can specify at most 1 formatters,for unit fields of enums", formatter_str))),
                             };
                             Ok(quote! {
                                 Self::#variant_name => repr += &format!(#formatter_str  #token_stream),
@@ -285,8 +285,18 @@ fn generate_fmt_impl_for_enum(
         }
     }).collect::<syn::Result<Vec<_>>>()?;
 
-    let token_stream = quote! { format!(#enum_formatter, repr)};
-
+    let token_stream = match formatters { // here we are checking default, or user defined max
+        1 => { enum_formatter.push_str("{{}}");quote! {format!(#enum_formatter, repr) }},
+        2 => { enum_formatter.push_str("{{}}");quote! {format!(#enum_formatter, repr) }},
+        3 => quote! { format!(#enum_formatter, stringify!(#name), repr) },
+        _ => {
+            return Err(syn::Error::new(
+                data_enum.enum_token.span(),
+                "Specify 2 (name, repr), 1 (name), or 0 formatters in the format string.",
+            ))
+        }
+    };
+    println!("Final enum_formatter:{}|", token_stream);
     let final_stream = quote! {
         let mut repr = "".to_string();
         match self {
