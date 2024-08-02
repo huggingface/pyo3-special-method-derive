@@ -125,26 +125,18 @@ where
     let mut ids: Vec<Option<Ident>> = Vec::new();
     let mut format_strings: Vec<String> = Vec::new();
     let mut formatters_counts: Vec<usize> = Vec::new();
-    let mut default_variamt_fmt = variant_fmt;
-    let mut is_first = true;
     for field in fields {
         let mut visibility = matches!(field.vis, Visibility::Public(_));
         if is_enum {
             visibility = true;
         }
 
-        match skip_formatting(field.attrs.clone(), &mut default_variamt_fmt, macro_name,!visibility) {
+        let mut formatter_str = variant_fmt.clone();
+        match skip_formatting(field.attrs.clone(), &mut formatter_str, macro_name,!visibility) {
             Ok(is_skipped) => {
                 if !is_skipped {
-                    let mut formatter_str = default_variamt_fmt.clone();
                     let formatters =
                         formatter_str.matches("{}").count() - formatter_str.matches("{{}}").count();
-
-                    if !is_first {
-                        formatter_str.push_str(", ")
-                    } else {
-                        is_first = false
-                    }
                     if formatters > 2 {
                         return Err(syn::Error::new(token.span(), "You can specify at most 2 formatters, one for the field name, and one for it's string representation"));
                     };
@@ -171,41 +163,43 @@ fn generate_fmt_impl_for_enum(
     } else {
         quote! { fmt_display }
     };
-    let mut enum_formatter = "{}.{}({})".to_string(); // by default pub enum A {...} we show A...
+    let mut enum_formatter = "{}.{}".to_string(); // by default pub enum A {...} we show A...
+    let mut default_variant_fmt = "{}({})".to_string();
+
     // check if the user overwrites the enum_formatter: 
     if let Some(attrs) = string_formatter {
         match skip_formatting(attrs.clone(), &mut enum_formatter, macro_name, false) {
-            Ok(_) => {}
-            Err(error) => return Err(error),
-        }
-    }
-    // count the number of formatters
-    let formatters = enum_formatter.matches("{}").count() - enum_formatter.matches("{{}}").count();
-    if formatters==3 && enum_formatter != "{}.{}({})" {
-        return Err(syn::Error::new(name.span(), "You can only specify 0, 1 or 2 `{{}}` formatter at the top of an enum"));
-    }
-    let default_variant_fmt = match formatters {
-        0 => {return Ok(quote! { let mut repr = #enum_formatter;})}, // The user does wants to display "MyEnumOnly"
-        1 => {"{}".to_string()},           // The user wants to display "MyEnumOnly.{}",
-        2 => {"{}({})".to_string()},           // The user wants to display "MyCustom.{}({}}", enum's name and {}
-        3 => {"{}({})".to_string()}            // this should only be the default setting "{}.{}({})" which is default
-        _ => {return Err(syn::Error::new(name.span(), 
-        "You can specify at most 2 formatters at the top of an enum. One for the enum name, one for the variant name, one for the variant's field.
-        Something like `#[format[fmt=\"nice_{}.cool_{}[--{}--]\")` which will display enum A{B(C)} as nice_A.cool_B[--C.fmt_display()--]."
-        ))}
-    };
-    if formatters < 3 { // we are not using the default name of the enum
-        let re = Regex::new(r"^(.*?)\{").unwrap();
-        if let Some(captures) = re.captures(&enum_formatter) {
-            if let Some(matched) = captures.get(1) {
-                 if matched.as_str().len() > 1 { // we fetch the formatter for the enume to do format!("MyFormat.{}", repr)
-                    enum_formatter = matched.as_str().to_string();
+            Ok(is_skipped) => {
+                if !is_skipped{
+                    let formatters = enum_formatter.matches("{}").count() - enum_formatter.matches("{{}}").count();
+                    if formatters==3 && enum_formatter != "{}.{}({})" {
+                        return Err(syn::Error::new(name.span(), "You can only specify 0, 1 or 2 `{{}}` formatter at the top of an enum"));
+                    }
+                    default_variant_fmt = match formatters {
+                        0 => {return Ok(quote! { let mut repr = #enum_formatter.to_string();})}, // The user does wants to display "MyEnumOnly"
+                        1 => {"{}".to_string()},           // The user wants to display "MyEnumOnly.{}",
+                        2 => {"{}({})".to_string()},           // The user wants to display "MyCustom.{}({}}", enum's name and {}
+                        3 => {"{}({})".to_string()}            // this should only be the default setting "{}.{}({})" which is default
+                        _ => {return Err(syn::Error::new(name.span(), 
+                        "You can specify at most 2 formatters at the top of an enum. One for the enum name, one for the variant name, one for the variant's field.
+                        Something like `#[format[fmt=\"nice_{}.cool_{}[--{}--]\")` which will display enum A{B(C)} as nice_A.cool_B[--C.fmt_display()--]."
+                        ))}
+                    };
+                    if formatters < 3 { // we are not using the default name of the enum
+                        let re = Regex::new(r"^(.*?)\{").unwrap();
+                        if let Some(captures) = re.captures(&enum_formatter) {
+                            if let Some(matched) = captures.get(1) {
+                                 if matched.as_str().len() > 1 { // we fetch the formatter for the enume to do format!("MyFormat.{}", repr)
+                                    enum_formatter = matched.as_str().to_string();
+                                }
+                            }
+                        }
+                    }
                 }
             }
+            Err(error) => return Err(error),
         }
-    }else {
-        enum_formatter=String::from("{}");
-    };
+    }; 
     println!("Enum formatter: {} \t default variant fmt {}", enum_formatter, default_variant_fmt);
     let variants = data_enum.variants.iter().collect::<Vec<_>>();
     let arms = variants.iter().map(|variant| {
@@ -262,7 +256,8 @@ fn generate_fmt_impl_for_enum(
                 extracted_field_names
             }
             Fields::Named(fields) => {
-                let extracted_field_names = extract_field_formatters(fields.named.clone() , &data_enum.enum_token, default_variant_fmt.clone(), macro_name, true);
+                let default_named_fmt = "{}={}".to_string();
+                let extracted_field_names = extract_field_formatters(fields.named.clone() , &data_enum.enum_token, default_named_fmt, macro_name, true);
                 match extracted_field_names {
                     Ok((ids, format_strings, formatters_counts)) => {
                         Ok({
@@ -275,7 +270,7 @@ fn generate_fmt_impl_for_enum(
                                 }).collect();
                             quote! {
                                 // For each arm format is gonna be hard to specify no?
-                                Self::#variant_name {#(#ids,)*} => repr += &format!(concat!(#(#format_strings, "", )*) #(#token_streams)*),
+                                Self::#variant_name {#(#ids,)*} => repr += &format!(concat!(#(#format_strings, ", ", )*) #(#token_streams)*),
                             }
                         })
                     },
@@ -285,14 +280,15 @@ fn generate_fmt_impl_for_enum(
         }
     }).collect::<syn::Result<Vec<_>>>()?;
 
+    let formatters = enum_formatter.matches("{}").count() - enum_formatter.matches("{{}}").count();
     let token_stream = match formatters { // here we are checking default, or user defined max
-        1 => { enum_formatter.push_str("{{}}");quote! {format!(#enum_formatter, repr) }},
-        2 => { enum_formatter.push_str("{{}}");quote! {format!(#enum_formatter, repr) }},
-        3 => quote! { format!(#enum_formatter, stringify!(#name), repr) },
+        0 => { enum_formatter.push_str("{{}}");quote! {format!(#enum_formatter, repr) }},
+        1 => quote! {format!(#enum_formatter, repr)},
+        2 => quote! {format!(#enum_formatter, stringify!(#name), repr)},
         _ => {
             return Err(syn::Error::new(
                 data_enum.enum_token.span(),
-                "Specify 2 (name, repr), 1 (name), or 0 formatters in the format string.",
+                "The enum formatter can only have 0, 1 or 2 {{}}.",
             ))
         }
     };
@@ -304,6 +300,7 @@ fn generate_fmt_impl_for_enum(
         }
         let repr = #token_stream;
     };
+    println!("Final stream {}", final_stream);
     Ok(final_stream)
 }
 
