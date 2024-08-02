@@ -268,9 +268,12 @@ fn generate_fmt_impl_for_enum(
                                         _ => quote!{},
                                     }
                                 }).collect();
+                                // Generate the format string directly in the procedural macro
+                            let format_str = format_strings.join(", ");
                             quote! {
-                                // For each arm format is gonna be hard to specify no?
-                                Self::#variant_name {#(#ids,)*} => repr += &format!(concat!(#(#format_strings, ", ", )*) #(#token_streams)*),
+                                Self::#variant_name {#(#ids,)*} => {
+                                    repr += &format!(#format_str #(#token_streams)*);
+                                }
                             }
                         })
                     },
