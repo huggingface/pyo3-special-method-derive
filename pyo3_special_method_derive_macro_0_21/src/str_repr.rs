@@ -42,7 +42,7 @@ impl Parse for FmtAttribute {
     }
 }
 
-// Parse the provided attribute. Returns the appropriate erro if it fails.
+// Parse the provided attribute. Returns the appropriate error if it fails.
 pub fn find_display_attribute(attr: &Attribute) -> Result<Option<TokenStream>, Error> {
     // Parse the attribute arguments
     let attribute = attr.parse_args::<FmtAttribute>();
@@ -200,7 +200,7 @@ fn generate_fmt_impl_for_enum(
     };
     let variants = data_enum.variants.iter().collect::<Vec<_>>();
     let arms = variants.iter().map(|variant| {
-        let variant_name = &variant.ident; // struct A{ UnitVariantName, NamedVariantName{named:i32}, UnamedVariantNamed(String)}
+        let variant_name = &variant.ident; // struct A{ UnitVariantName, NamedVariantName{named:i32}, unnamedVariantNamed(String)}
 
         match &variant.fields {
             Fields::Unit => { // All of the variants are Unit
@@ -229,11 +229,11 @@ fn generate_fmt_impl_for_enum(
             }
             syn::Fields::Unnamed(_fields) => { // Variants are Unit or Unnamed
                 let field_value = &variant.ident;
-                let mut default_unamed_fmt = default_variant_fmt.clone();
-                let extracted_field_names = match skip_formatting(variant.attrs.clone(), &mut default_unamed_fmt, macro_name, false) {
+                let mut default_unnamed_fmt = default_variant_fmt.clone();
+                let extracted_field_names = match skip_formatting(variant.attrs.clone(), &mut default_unnamed_fmt, macro_name, false) {
                     Ok(is_skipped) => {
                         if !is_skipped{
-                            let formatter_str = default_unamed_fmt;
+                            let formatter_str = default_unnamed_fmt;
                             let formatters = formatter_str.matches("{}").count() - formatter_str.matches("{{}}").count();
                             let token_stream  = match formatters {
                                     0 => quote!{},

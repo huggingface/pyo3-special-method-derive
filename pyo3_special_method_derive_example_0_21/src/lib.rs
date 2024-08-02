@@ -36,7 +36,7 @@ impl FromStr for CityName {
 #[format(fmt = "{}({})")]
 pub struct City {
     pub name: CityName,
-    #[format(fmt = "adress={}")]
+    #[format(fmt = "address={}")]
     addresses: HashMap<String, Arc<RwLock<PyAddress>>>,
 }
 
@@ -103,7 +103,7 @@ pub struct Person {
     pub name: String,
     #[format(fmt = "age")]
     age: u8,
-    #[format(fmt = "my_adress={}")]
+    #[format(fmt = "my_address={}")]
     address: Arc<RwLock<PyAddress>>,
 }
 
