@@ -363,8 +363,12 @@ fn generate_fmt_impl_for_struct(
                             }
                         })
                         .collect();
+                    
+                    let format_str = format_strings.join(", ");
                     quote! {
-                        #(repr += &format!(#format_strings #token_streams));*;
+                        {
+                            repr += &format!(#format_str #(#token_streams)*);
+                        }
                     }
                 }),
                 Err(e) => Err(e),
