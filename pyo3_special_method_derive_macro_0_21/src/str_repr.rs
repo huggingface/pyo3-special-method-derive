@@ -285,7 +285,7 @@ fn generate_fmt_impl_for_enum(
 
     let formatters = enum_formatter.matches("{}").count() - enum_formatter.matches("{{}}").count();
     let token_stream = match formatters { // here we are checking default, or user defined max
-        0 => { enum_formatter.push_str("{{}}");quote! {format!(#enum_formatter, repr) }},
+        0 => { enum_formatter.push_str("{}");quote! {format!(#enum_formatter, repr) }},
         1 => quote! {format!(#enum_formatter, repr)},
         2 => quote! {format!(#enum_formatter, stringify!(#name), repr)},
         _ => {

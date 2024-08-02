@@ -295,7 +295,7 @@ pub fn dir_derive(input: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(Str, attributes(pyo3_smd, pyo3_smd_str, pyo3_fmt_no_skip))]
+#[proc_macro_derive(Str, attributes(pyo3_smd, format))]
 pub fn str_derive(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
 
@@ -370,7 +370,7 @@ pub fn str_derive(input_stream: TokenStream) -> TokenStream {
 ///     hash: u32,
 /// }
 /// ```
-#[proc_macro_derive(AutoDisplay, attributes(skip, auto_display))]
+#[proc_macro_derive(AutoDisplay, attributes(skip, format))]
 pub fn auto_display(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
     let name = &input.ident;
@@ -453,7 +453,7 @@ pub fn auto_display(input_stream: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(Repr, attributes(skip, pyo3_fmt_no_skip, format))]
+#[proc_macro_derive(Repr, attributes(skip, format))]
 pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
 
@@ -529,7 +529,7 @@ pub fn repr_derive(input_stream: TokenStream) -> TokenStream {
 ///     pub phone_number: String,
 /// }
 /// ```
-#[proc_macro_derive(AutoDebug, attributes(skip, pyo3_fmt_no_skip, format))]
+#[proc_macro_derive(AutoDebug, attributes(skip, format))]
 pub fn auto_debug(input_stream: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input_stream as DeriveInput);
     let name = &input.ident;
