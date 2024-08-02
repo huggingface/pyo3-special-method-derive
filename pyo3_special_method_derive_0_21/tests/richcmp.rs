@@ -1,5 +1,5 @@
 use pyo3::{basic::CompareOp, pyclass};
-use pyo3_special_method_derive::richcmp_derive_with;
+use pyo3_special_method_derive_0_21::richcmp_derive_with;
 
 #[derive(PartialEq, PartialOrd)]
 #[pyclass]

@@ -1,5 +1,5 @@
 use pyo3::pyclass;
-use pyo3_special_method_derive::Dir;
+use pyo3_special_method_derive_0_21::Dir;
 
 #[allow(dead_code)]
 #[pyclass]
