@@ -7,11 +7,6 @@ use syn::spanned::Spanned;
 use syn::{Attribute, DeriveInput, Error, Field, Fields, Ident, LitStr, Token, Visibility};
 use regex::Regex;
 
-const DEFAULT_ENUM_IDENT_FORMATTER: &str = "{}.{}";
-const DEFAULT_ENUM_UNIT_IDENT_FORMATTER: &str = "{}";
-const DEFAULT_ELEMENT_FORMATTER: &str = "{}={}";
-const DEFAULT_STRUCT_IDENT_FORMATTER: &str = "{}({})";
-
 pub(crate) enum DeriveType {
     ForAutoDisplay,
     ForAutoDebug,
@@ -172,31 +167,27 @@ fn generate_fmt_impl_for_enum(
             Ok(is_skipped) => {
                 if !is_skipped{
                     let formatters = enum_formatter.matches("{}").count() - enum_formatter.matches("{{}}").count();
-                    if formatters==3 && enum_formatter != "{}.{}({})" {
-                        return Err(syn::Error::new(name.span(), "You can only specify 0, 1 or 2 `{{}}` formatter at the top of an enum"));
-                    }
                     default_variant_fmt = match formatters {
                         0 => {return Ok(quote! { let mut repr = #enum_formatter.to_string();})}, // The user does wants to display "MyEnumOnly"
                         1 => {"{}".to_string()},           // The user wants to display "MyEnumOnly.{}",
-                        2 => {"{}({})".to_string()},           // The user wants to display "MyCustom.{}({}}", enum's name and {}
-                        3 => {"{}({})".to_string()}            // this should only be the default setting "{}.{}({})" which is default
-                        _ => {return Err(syn::Error::new(name.span(), 
-                        "You can specify at most 2 formatters at the top of an enum. One for the enum name, one for the variant name, one for the variant's field.
-                        Something like `#[format[fmt=\"nice_{}.cool_{}[--{}--]\")` which will display enum A{B(C)} as nice_A.cool_B[--C.fmt_display()--]."
-                        ))}
+                        2 => {"{}({})".to_string()},           
+                        _ => {
+                            return Err(syn::Error::new(name.span(), 
+                            "You can specify at most 2 formatters at the top of an enum. One for the enum name, one for the variant name, one for the variant's field.
+                            Something like `#[format[fmt=\"nice_{}.cool_{}[--{}--]\")` which will display enum A{B(C)} as nice_A.cool_B[--C.fmt_display()--]."
+                            ))
+                        }
                     };
-                    if formatters < 3 { // we are not using the default name of the enum
-                        let re = Regex::new(r"^(.*?)\{").unwrap();
-                        if let Some(captures) = re.captures(&enum_formatter) {
-                            if let Some(matched) = captures.get(1) {
-                                 if matched.as_str().len() > 1 { // we fetch the formatter for the enume to do format!("MyFormat.{}", repr)
-                                    enum_formatter = matched.as_str().to_string();
-                                }
+                    let re = Regex::new(r"^(.*?)\{").unwrap();
+                    if let Some(captures) = re.captures(&enum_formatter) {
+                        if let Some(matched) = captures.get(1) {
+                             if matched.as_str().len() > 1 { // we fetch the formatter for the enume to do format!("MyFormat.{}", repr)
+                                enum_formatter = matched.as_str().to_string();
                             }
                         }
                     }
                 }
-            }
+            },
             Err(error) => return Err(error),
         }
     }; 
@@ -311,19 +302,42 @@ fn generate_fmt_impl_for_struct(
     macro_name: &str,
     is_repr: bool,
 ) -> syn::Result<proc_macro2::TokenStream> {
-    let mut struct_formatter = "{}({})".to_string();
     let formatter = if is_repr {
         quote! { fmt_debug }
     } else {
         quote! { fmt_display }
     };
+    let mut struct_formatter = "{}({})".to_string(); // by default pub enum A {...} we show A...
+    let mut default_variant_fmt = "{}={}".to_string();
     if let Some(attrs) = string_formatter {
-        match skip_formatting(attrs.clone(), &mut struct_formatter,macro_name, false) {
-            Ok(_) => {}
+        match skip_formatting(attrs.clone(), &mut struct_formatter, macro_name, false) {
+            Ok(is_skipped) => {
+                if !is_skipped{
+                    let formatters = struct_formatter.matches("{}").count() - struct_formatter.matches("{{}}").count();
+                    default_variant_fmt = match formatters {
+                        0 => {return Ok(quote! { let mut repr = #struct_formatter.to_string();})}, // The user does wants to display "MyEnumOnly"
+                        1 => {"{}".to_string()},           // The user wants to display "MyEnumOnly.{}",
+                        2 => {"{}={}".to_string()},           
+                        _ => {
+                            return Err(syn::Error::new(name.span(), 
+                            "You can specify at most 2 formatters at the top of an enum. One for the enum name, one for the variant name, one for the variant's field.
+                            Something like `#[format[fmt=\"nice_{}.cool_{}[--{}--]\")` which will display enum A{B(C)} as nice_A.cool_B[--C.fmt_display()--]."
+                            ))
+                        }
+                    };
+                    let re = Regex::new(r"^(.*?)\{").unwrap();
+                    if let Some(captures) = re.captures(&struct_formatter) {
+                        if let Some(matched) = captures.get(1) {
+                             if matched.as_str().len() > 1 { // we fetch the formatter for the enume to do format!("MyFormat.{}", repr)
+                                struct_formatter = matched.as_str().to_string();
+                            }
+                        }
+                    }
+                }
+            }
             Err(error) => return Err(error),
         }
-    }
-
+    };
     let formatters = struct_formatter.matches("{}").count()
         - struct_formatter.matches("{{}}").count();
     if formatters == 0 {
@@ -335,7 +349,7 @@ fn generate_fmt_impl_for_struct(
             let extracted_field_names = extract_field_formatters(
                 fields.named.clone(),
                 &data_struct.struct_token,
-                DEFAULT_ELEMENT_FORMATTER.to_string(),
+                default_variant_fmt.clone(),
                 macro_name,
                 false,
             );
