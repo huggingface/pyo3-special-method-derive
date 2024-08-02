@@ -1,11 +1,11 @@
 use crate::{ATTR_NAMESPACE_FORMATTER, ATTR_SKIP_NAMESPACE, SKIP_ALL};
 use proc_macro2::TokenStream;
 use quote::quote;
+use regex::Regex;
 use syn::parse::{Parse, ParseStream};
 use syn::punctuated::Punctuated;
 use syn::spanned::Spanned;
 use syn::{Attribute, DeriveInput, Error, Field, Fields, Ident, LitStr, Token, Visibility};
-use regex::Regex;
 
 pub(crate) enum DeriveType {
     ForAutoDisplay,
@@ -93,7 +93,7 @@ where
                 Err(error) => return Err(error),
                 Ok(None) => is_skipped = true, // this is where we skip
             }
-        } else if attr.path().is_ident(ATTR_SKIP_NAMESPACE)  {
+        } else if attr.path().is_ident(ATTR_SKIP_NAMESPACE) {
             let _ = attr.parse_nested_meta(|meta| {
                 is_skipped |= meta.path.is_ident(macro_name) || meta.path.is_ident(SKIP_ALL);
                 Ok(())
@@ -127,7 +127,12 @@ where
         }
 
         let mut formatter_str = variant_fmt.clone();
-        match skip_formatting(field.attrs.clone(), &mut formatter_str, macro_name,!visibility) {
+        match skip_formatting(
+            field.attrs.clone(),
+            &mut formatter_str,
+            macro_name,
+            !visibility,
+        ) {
             Ok(is_skipped) => {
                 if !is_skipped {
                     let formatters =
@@ -161,12 +166,13 @@ fn generate_fmt_impl_for_enum(
     let mut enum_formatter = "{}.{}".to_string(); // by default pub enum A {...} we show A...
     let mut default_variant_fmt = "{}({})".to_string();
 
-    // check if the user overwrites the enum_formatter: 
+    // check if the user overwrites the enum_formatter:
     if let Some(attrs) = string_formatter {
         match skip_formatting(attrs.clone(), &mut enum_formatter, macro_name, false) {
             Ok(is_skipped) => {
-                if !is_skipped{
-                    let formatters = enum_formatter.matches("{}").count() - enum_formatter.matches("{{}}").count();
+                if !is_skipped {
+                    let formatters = enum_formatter.matches("{}").count()
+                        - enum_formatter.matches("{{}}").count();
                     default_variant_fmt = match formatters {
                         0 => {return Ok(quote! { let mut repr = #enum_formatter.to_string();})}, // The user does wants to display "MyEnumOnly"
                         1 => {"{}".to_string()},           // The user wants to display "MyEnumOnly.{}",
@@ -181,16 +187,17 @@ fn generate_fmt_impl_for_enum(
                     let re = Regex::new(r"^(.*?)\{").unwrap();
                     if let Some(captures) = re.captures(&enum_formatter) {
                         if let Some(matched) = captures.get(1) {
-                             if matched.as_str().len() > 1 { // we fetch the formatter for the enume to do format!("MyFormat.{}", repr)
+                            if matched.as_str().len() > 1 {
+                                // we fetch the formatter for the enume to do format!("MyFormat.{}", repr)
                                 enum_formatter = matched.as_str().to_string();
                             }
                         }
                     }
                 }
-            },
+            }
             Err(error) => return Err(error),
         }
-    }; 
+    };
     let variants = data_enum.variants.iter().collect::<Vec<_>>();
     let arms = variants.iter().map(|variant| {
         let variant_name = &variant.ident; // struct A{ UnitVariantName, NamedVariantName{named:i32}, UnamedVariantNamed(String)}
@@ -274,8 +281,12 @@ fn generate_fmt_impl_for_enum(
     }).collect::<syn::Result<Vec<_>>>()?;
 
     let formatters = enum_formatter.matches("{}").count() - enum_formatter.matches("{{}}").count();
-    let token_stream = match formatters { // here we are checking default, or user defined max
-        0 => { enum_formatter.push_str("{}");quote! {format!(#enum_formatter, repr) }},
+    let token_stream = match formatters {
+        // here we are checking default, or user defined max
+        0 => {
+            enum_formatter.push_str("{}");
+            quote! {format!(#enum_formatter, repr) }
+        }
         1 => quote! {format!(#enum_formatter, repr)},
         2 => quote! {format!(#enum_formatter, stringify!(#name), repr)},
         _ => {
@@ -312,8 +323,9 @@ fn generate_fmt_impl_for_struct(
     if let Some(attrs) = string_formatter {
         match skip_formatting(attrs.clone(), &mut struct_formatter, macro_name, false) {
             Ok(is_skipped) => {
-                if !is_skipped{
-                    let formatters = struct_formatter.matches("{}").count() - struct_formatter.matches("{{}}").count();
+                if !is_skipped {
+                    let formatters = struct_formatter.matches("{}").count()
+                        - struct_formatter.matches("{{}}").count();
                     default_variant_fmt = match formatters {
                         0 => {return Ok(quote! { let mut repr = #struct_formatter.to_string();})}, // The user does wants to display "MyEnumOnly"
                         1 => {"{}".to_string()},           // The user wants to display "MyEnumOnly.{}",
@@ -328,7 +340,8 @@ fn generate_fmt_impl_for_struct(
                     let re = Regex::new(r"^(.*?)\{").unwrap();
                     if let Some(captures) = re.captures(&struct_formatter) {
                         if let Some(matched) = captures.get(1) {
-                             if matched.as_str().len() > 1 { // we fetch the formatter for the enume to do format!("MyFormat.{}", repr)
+                            if matched.as_str().len() > 1 {
+                                // we fetch the formatter for the enume to do format!("MyFormat.{}", repr)
                                 struct_formatter = matched.as_str().to_string();
                             }
                         }
@@ -338,8 +351,8 @@ fn generate_fmt_impl_for_struct(
             Err(error) => return Err(error),
         }
     };
-    let formatters = struct_formatter.matches("{}").count()
-        - struct_formatter.matches("{{}}").count();
+    let formatters =
+        struct_formatter.matches("{}").count() - struct_formatter.matches("{{}}").count();
     if formatters == 0 {
         return Ok(quote! { let mut repr = #struct_formatter.to_string();});
     }
@@ -374,7 +387,7 @@ fn generate_fmt_impl_for_struct(
                             }
                         })
                         .collect();
-                    
+
                     let format_str = format_strings.join(", ");
                     quote! {
                         {
@@ -430,7 +443,7 @@ macro_rules! create_body {
 pub(crate) fn impl_formatter(
     input: &DeriveInput,
     ty: DeriveType,
-    name: &str
+    name: &str,
 ) -> syn::Result<proc_macro2::TokenStream> {
     // Get the name of the struct
     let ident = &input.ident;
@@ -438,7 +451,7 @@ pub(crate) fn impl_formatter(
     let is_repr = matches!(ty, DeriveType::ForAutoDebug);
 
     // Create body for display and debug
-    let body_display = create_body!(input, ident,is_repr, name)?;
+    let body_display = create_body!(input, ident, is_repr, name)?;
     let body_debug = create_body!(input, ident, is_repr, name)?;
 
     // Determine which traits to implement
