@@ -200,7 +200,6 @@ fn generate_fmt_impl_for_enum(
             Err(error) => return Err(error),
         }
     }; 
-    println!("Enum formatter: {} \t default variant fmt {}", enum_formatter, default_variant_fmt);
     let variants = data_enum.variants.iter().collect::<Vec<_>>();
     let arms = variants.iter().map(|variant| {
         let variant_name = &variant.ident; // struct A{ UnitVariantName, NamedVariantName{named:i32}, UnamedVariantNamed(String)}
@@ -295,7 +294,6 @@ fn generate_fmt_impl_for_enum(
             ))
         }
     };
-    println!("Final enum_formatter:{}|", token_stream);
     let final_stream = quote! {
         let mut repr = "".to_string();
         match self {
@@ -303,7 +301,6 @@ fn generate_fmt_impl_for_enum(
         }
         let repr = #token_stream;
     };
-    println!("Final stream {}", final_stream);
     Ok(final_stream)
 }
 
@@ -396,7 +393,6 @@ fn generate_fmt_impl_for_struct(
 
         let repr = #token_stream;
     };
-    println!("Final stream:\n{}", final_stream);
     Ok(final_stream)
 }
 
