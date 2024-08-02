@@ -330,7 +330,7 @@ fn generate_fmt_impl_for_struct(
     let formatters = struct_formatter.matches("{}").count()
         - struct_formatter.matches("{{}}").count();
     if formatters == 0 {
-        return Ok(quote! { let mut repr = #struct_formatter;});
+        return Ok(quote! { let mut repr = #struct_formatter.to_string();});
     }
 
     let field_arms = match &data_struct.fields {
@@ -392,6 +392,7 @@ fn generate_fmt_impl_for_struct(
 
         let repr = #token_stream;
     };
+    println!("Final stream:\n{}", final_stream);
     Ok(final_stream)
 }
 
