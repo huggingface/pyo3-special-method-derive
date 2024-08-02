@@ -178,7 +178,7 @@ fn generate_fmt_impl_for_enum(
                         1 => {"{}".to_string()},           // The user wants to display "MyEnumOnly.{}",
                         2 => {"{}({})".to_string()},           
                         _ => {
-                            return Err(syn::Error::new(name.span(), 
+                            return Err(syn::Error::new(name.span(),
                             "You can specify at most 2 formatters at the top of an enum. One for the enum name, one for the variant name, one for the variant's field.
                             Something like `#[format[fmt=\"nice_{}.cool_{}[--{}--]\")` which will display enum A{B(C)} as nice_A.cool_B[--C.fmt_display()--]."
                             ))
@@ -331,7 +331,7 @@ fn generate_fmt_impl_for_struct(
                         1 => {"{}".to_string()},           // The user wants to display "MyEnumOnly.{}",
                         2 => {"{}={}".to_string()},           
                         _ => {
-                            return Err(syn::Error::new(name.span(), 
+                            return Err(syn::Error::new(name.span(),
                             "You can specify at most 2 formatters at the top of an enum. One for the enum name, one for the variant name, one for the variant's field.
                             Something like `#[format[fmt=\"nice_{}.cool_{}[--{}--]\")` which will display enum A{B(C)} as nice_A.cool_B[--C.fmt_display()--]."
                             ))
