@@ -220,7 +220,9 @@ fn generate_fmt_impl_for_enum(
                                 Self::#variant_name => repr += &format!(#formatter_str  #token_stream),
                             })
                         } else {
-                            Ok(quote!{})
+                            Ok(quote!{
+                                Self::#variant_name => repr += "<variant skipped>",
+                            })
                         }
                     },
                     Err(e) =>  return Err(e),
@@ -245,7 +247,9 @@ fn generate_fmt_impl_for_enum(
                                 #name::#field_value(single)  => repr += &format!(#formatter_str #token_stream),
                             })
                         } else {
-                            Ok(quote!{})
+                            Ok(quote!{
+                                #name::#field_value(_)  => repr += "<variant skipped>",
+                            })
                         }
                     },
                     Err(e) =>  return Err(e),

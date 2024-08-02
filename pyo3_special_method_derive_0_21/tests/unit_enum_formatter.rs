@@ -1,7 +1,7 @@
 use pyo3::pyclass;
 use pyo3_special_method_derive_0_21::Str;
 
-#[pyclass(eq, eq_int)]
+#[pyclass]
 #[derive(Str, PartialEq)]
 #[format(fmt = "Enum: {}.{}")]
 enum Data {
