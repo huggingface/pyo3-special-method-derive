@@ -27,12 +27,10 @@
 use std::{
     cell::Cell,
     collections::{BTreeMap, BTreeSet, HashMap, HashSet},
-    ops::Deref,
     sync::{
         atomic::{AtomicUsize, Ordering},
         Arc, Mutex, RwLock,
     },
-    time::{Duration, Instant},
 };
 
 pub use pyo3_special_method_derive_macro::*;
@@ -49,41 +47,6 @@ pub trait PyDebug {
 /// Types which can be displayed into the `__str__` implementation.
 pub trait PyDisplay {
     fn fmt_display(&self) -> String;
-}
-
-trait TimeoutLock<T> {
-    // Spin for 5 seconds...
-    const DEFAULT_DURATION: Duration = Duration::new(5, 0);
-
-    fn lock_timeout(&self, timeout: Duration) -> Option<impl Deref<Target = T>>;
-}
-
-impl<T> TimeoutLock<T> for Mutex<T> {
-    fn lock_timeout(&self, timeout: Duration) -> Option<impl Deref<Target = T>> {
-        let start = Instant::now();
-        let mut res = self.try_lock();
-        while res.is_err() && Instant::now().duration_since(start) <= timeout {
-            if let Ok(res) = res {
-                return Some(res);
-            }
-            res = self.try_lock();
-        }
-        None
-    }
-}
-
-impl<T> TimeoutLock<T> for RwLock<T> {
-    fn lock_timeout(&self, timeout: Duration) -> Option<impl Deref<Target = T>> {
-        let start = Instant::now();
-        let mut res = self.try_read();
-        while res.is_err() && Instant::now().duration_since(start) <= timeout {
-            if let Ok(res) = res {
-                return Some(res);
-            }
-            res = self.try_read();
-        }
-        None
-    }
 }
 
 /// Use this trait to automatically derive PyDebug and PyDisplay for your type.
@@ -189,72 +152,72 @@ impl<T: PyDisplay> PyDisplay for Option<T> {
 
 impl<T: PyDebug> PyDebug for RwLock<T> {
     fn fmt_debug(&self) -> String {
-        match self.lock_timeout(Self::DEFAULT_DURATION) {
-            Some(x) => x.fmt_debug(),
-            None => "None".to_string(),
+        match self.try_read() {
+            Ok(x) => x.fmt_debug(),
+            Err(_) => "None".to_string(),
         }
     }
 }
 
 impl<T: PyDisplay> PyDisplay for RwLock<T> {
     fn fmt_display(&self) -> String {
-        match self.lock_timeout(Self::DEFAULT_DURATION) {
-            Some(x) => x.fmt_display(),
-            None => "None".to_string(),
+        match self.try_read() {
+            Ok(x) => x.fmt_display(),
+            Err(_) => "None".to_string(),
         }
     }
 }
 
 impl<T: PyDebug> PyDebug for Mutex<T> {
     fn fmt_debug(&self) -> String {
-        match self.lock_timeout(Self::DEFAULT_DURATION) {
-            Some(x) => x.fmt_debug(),
-            None => "None".to_string(),
+        match self.try_lock() {
+            Ok(x) => x.fmt_debug(),
+            Err(_) => "None".to_string(),
         }
     }
 }
 
 impl<T: PyDisplay> PyDisplay for Mutex<T> {
     fn fmt_display(&self) -> String {
-        match self.lock_timeout(Self::DEFAULT_DURATION) {
-            Some(x) => x.fmt_display(),
-            None => "None".to_string(),
+        match self.try_lock() {
+            Ok(x) => x.fmt_display(),
+            Err(_) => "None".to_string(),
         }
     }
 }
 
 impl<T: PyDebug> PyDebug for Arc<RwLock<T>> {
     fn fmt_debug(&self) -> String {
-        match self.lock_timeout(RwLock::<T>::DEFAULT_DURATION) {
-            Some(x) => x.fmt_debug(),
-            None => "None".to_string(),
+        match self.try_read() {
+            Ok(x) => x.fmt_debug(),
+            Err(_) => "None".to_string(),
         }
     }
 }
 
 impl<T: PyDisplay> PyDisplay for Arc<RwLock<T>> {
     fn fmt_display(&self) -> String {
-        match self.lock_timeout(RwLock::<T>::DEFAULT_DURATION) {
-            Some(x) => x.fmt_display(),
-            None => "None".to_string(),
+        match self.try_read() {
+            Ok(x) => x.fmt_display(),
+            Err(_) => "None".to_string(),
         }
     }
 }
 
 impl<T: PyDebug> PyDebug for Arc<Mutex<T>> {
     fn fmt_debug(&self) -> String {
-        match self.lock_timeout(Mutex::<T>::DEFAULT_DURATION) {
-            Some(x) => x.fmt_debug(),
-            None => "None".to_string(),
+        match self.try_lock() {
+            Ok(x) => x.fmt_debug(),
+            Err(_) => "None".to_string(),
         }
     }
 }
 
 impl<T: PyDisplay> PyDisplay for Arc<Mutex<T>> {
     fn fmt_display(&self) -> String {
-        match self.lock_timeout(Mutex::<T>::DEFAULT_DURATION) {
-            Some(x) => x.fmt_display(),
-            None => "None".to_string(),
+        match self.try_lock() {
+            Ok(x) => x.fmt_display(),
+            Err(_) => "None".to_string(),
         }
     }
 }
