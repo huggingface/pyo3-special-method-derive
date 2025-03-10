@@ -16,8 +16,7 @@ fn test_get_attr_exception() {
 
     let res = Tester::Beta.__getattr__("z".to_string()).unwrap_err();
 
-    let correct_err = Python::with_gil(|py| {
-        &res.value_bound(py).to_string() == "'Tester.Beta' has no attribute 'z'"
-    });
+    let correct_err =
+        Python::with_gil(|py| &res.value(py).to_string() == "'Tester.Beta' has no attribute 'z'");
     assert!(correct_err);
 }

@@ -37,8 +37,7 @@ fn test_get_attr_exception() {
     .__getattr__("not_name".to_string())
     .unwrap_err();
 
-    let correct_err = Python::with_gil(|py| {
-        &res.value_bound(py).to_string() == "'Person' has no attribute 'not_name'"
-    });
+    let correct_err =
+        Python::with_gil(|py| &res.value(py).to_string() == "'Person' has no attribute 'not_name'");
     assert!(correct_err);
 }
