@@ -15,9 +15,9 @@ enum Tester {
 
 #[test]
 fn test_dict() {
-    pyo3::prepare_freethreaded_python();
+    Python::initialize();
 
-    Python::with_gil(|py| {
+    Python::attach(|py| {
         let res = pyo3::Py::new(py, Tester::Beta).unwrap();
 
         let dict = {

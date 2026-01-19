@@ -11,7 +11,7 @@ struct Person {
 }
 
 fn main() {
-    pyo3::prepare_freethreaded_python();
+    Python::initialize();
 
     let res = Person {
         name: "John Doe".to_string(),
@@ -25,7 +25,7 @@ fn main() {
     let mut values = Vec::new();
     for k in &keys {
         let v = res.get(k).unwrap();
-        values.push(Python::with_gil(|py| {
+        values.push(Python::attach(|py| {
             let py_any_ref = v.bind(py);
             py_any_ref.extract::<String>().unwrap()
         }));
