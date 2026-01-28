@@ -16,7 +16,7 @@ enum Tester {
 
 #[test]
 fn test_get_attr_exception() {
-    pyo3::prepare_freethreaded_python();
+    Python::initialize();
 
     let res = Tester::Beta {
         x: "What is 1+2?".to_string(),
@@ -26,6 +26,6 @@ fn test_get_attr_exception() {
     .unwrap_err();
 
     let correct_err =
-        Python::with_gil(|py| &res.value(py).to_string() == "'Tester.Beta' has no attribute 'z'");
+        Python::attach(|py| &res.value(py).to_string() == "'Tester.Beta' has no attribute 'z'");
     assert!(correct_err);
 }

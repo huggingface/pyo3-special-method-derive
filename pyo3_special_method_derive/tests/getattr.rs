@@ -10,7 +10,7 @@ struct Person {
 
 #[test]
 fn test_get() {
-    pyo3::prepare_freethreaded_python();
+    Python::initialize();
 
     let res = Person {
         name: "John Doe".to_string(),
@@ -19,7 +19,7 @@ fn test_get() {
     .__getattr__("name".to_string())
     .unwrap();
 
-    let name = Python::with_gil(|py| {
+    let name = Python::attach(|py| {
         let py_any_ref = res.bind(py);
         py_any_ref.extract::<String>().unwrap()
     });
@@ -28,7 +28,7 @@ fn test_get() {
 
 #[test]
 fn test_get_attr_exception() {
-    pyo3::prepare_freethreaded_python();
+    Python::initialize();
 
     let res = Person {
         name: "John Doe".to_string(),
@@ -38,6 +38,6 @@ fn test_get_attr_exception() {
     .unwrap_err();
 
     let correct_err =
-        Python::with_gil(|py| &res.value(py).to_string() == "'Person' has no attribute 'not_name'");
+        Python::attach(|py| &res.value(py).to_string() == "'Person' has no attribute 'not_name'");
     assert!(correct_err);
 }

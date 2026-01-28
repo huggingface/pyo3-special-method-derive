@@ -1,4 +1,4 @@
-use pyo3::pyclass;
+use pyo3::{pyclass, Python};
 use pyo3_special_method_derive::Getattr;
 
 #[pyclass]
@@ -11,7 +11,7 @@ struct Person {
 }
 
 fn main() {
-    pyo3::prepare_freethreaded_python();
+    Python::initialize();
 
     let person = Person {
         name: "John Doe".to_string(),
