@@ -634,7 +634,7 @@ pub fn getattr_derive(input: TokenStream) -> TokenStream {
                         for (name, ident) in field_names_str.iter().zip(field_names) {
                             let inner = quote! {
                                 #name => {
-                                    Ok(pyo3::Python::attach(|py| self.#ident.clone().into_py_any(py).unwrap()))
+                                    pyo3::Python::attach(|py| self.#ident.clone().into_py_any(py))
                                 }
                             };
                             matchers.push(inner);
@@ -710,7 +710,7 @@ pub fn getattr_derive(input: TokenStream) -> TokenStream {
                             inserter.push(
                                 quote! {
                                     stringify!(#ident_name) => {
-                                        Ok(pyo3::Python::attach(|py| #ident_name.clone().into_py_any(py).unwrap()))
+                                        pyo3::Python::attach(|py| #ident_name.clone().into_py_any(py))
                                     }
                                 }
                             );
@@ -849,8 +849,8 @@ pub fn dict_derive(input: TokenStream) -> TokenStream {
                             impl #name {
                                 #[allow(non_snake_case)]
                                 #[getter]
-                                pub fn __dict__(&self) -> std::collections::HashMap<String, pyo3::Py<pyo3::PyAny>> {
-                                    std::collections::HashMap::new()
+                                pub fn __dict__(&self) -> pyo3::PyResult<std::collections::HashMap<String, pyo3::Py<pyo3::PyAny>>> {
+                                    Ok(std::collections::HashMap::new())
                                 }
                             }
                         }
@@ -861,7 +861,7 @@ pub fn dict_derive(input: TokenStream) -> TokenStream {
                             inserter.push(
                                 quote! {
                                     values.insert(
-                                            stringify!(#name).to_string(), pyo3::Python::attach(|py| self.#name.clone().into_py_any(py).unwrap())
+                                            stringify!(#name).to_string(), pyo3::Python::attach(|py| self.#name.clone().into_py_any(py))?
                                     );
                                 }
                             );
@@ -872,12 +872,12 @@ pub fn dict_derive(input: TokenStream) -> TokenStream {
                             impl #name {
                                 #[allow(non_snake_case)]
                                 #[getter]
-                                pub fn __dict__(&self) -> std::collections::HashMap<String, pyo3::Py<pyo3::PyAny>> {
+                                pub fn __dict__(&self) -> pyo3::PyResult<std::collections::HashMap<String, pyo3::Py<pyo3::PyAny>>> {
                                     use pyo3::IntoPyObjectExt;
 
                                     let mut values = std::collections::HashMap::new();
                                     #(#inserter)*
-                                    values
+                                    Ok(values)
                                 }
                             }
                         }
@@ -890,8 +890,8 @@ pub fn dict_derive(input: TokenStream) -> TokenStream {
                         impl #name {
                             #[allow(non_snake_case)]
                             #[getter]
-                            pub fn __dict__(&self) -> std::collections::HashMap<String, pyo3::Py<pyo3::PyAny>> {
-                                std::collections::HashMap::new()
+                            pub fn __dict__(&self) -> pyo3::PyResult<std::collections::HashMap<String, pyo3::Py<pyo3::PyAny>>> {
+                                Ok(std::collections::HashMap::new())
                             }
                         }
                     }
@@ -938,7 +938,7 @@ pub fn dict_derive(input: TokenStream) -> TokenStream {
                             inserter.push(
                                 quote! {
                                     values.insert(
-                                            stringify!(#name).to_string(), pyo3::Python::attach(|py| #name.clone().into_py_any(py).unwrap())
+                                            stringify!(#name).to_string(), pyo3::Python::attach(|py| #name.clone().into_py_any(py))?
                                     );
                                 }
                             );
@@ -1001,7 +1001,7 @@ pub fn dict_derive(input: TokenStream) -> TokenStream {
                 impl #name {
                     #[allow(non_snake_case)]
                     #[getter]
-                    pub fn __dict__(&self) -> std::collections::HashMap<String, pyo3::Py<pyo3::PyAny>> {
+                    pub fn __dict__(&self) -> pyo3::PyResult<std::collections::HashMap<String, pyo3::Py<pyo3::PyAny>>> {
                         use pyo3::IntoPyObjectExt;
 
                         let mut values = std::collections::HashMap::new();
@@ -1009,7 +1009,7 @@ pub fn dict_derive(input: TokenStream) -> TokenStream {
                             #(#match_arms)*
                             #(#ignored_match_arms)*
                         }
-                        values
+                        Ok(values)
                     }
                 }
             }

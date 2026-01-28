@@ -18,7 +18,8 @@ fn main() {
         address: "Address".to_string(),
         location: "Earth".to_string(),
     }
-    .__dict__();
+    .__dict__()
+    .expect("Failed to get dictionary");
 
     let mut keys = res.keys().cloned().collect::<Vec<_>>();
     keys.sort();
