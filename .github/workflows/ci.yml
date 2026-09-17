@@ -11,8 +11,12 @@ on:
 
 name: Continuous integration
 
+permissions: {}
+
 jobs:
   check:
+    permissions:
+      contents: read
     name: Check
     runs-on: ${{ matrix.os }}
     strategy:
@@ -21,16 +25,18 @@ jobs:
         rust: [stable]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-      - uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af  # v1
+      - uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af  # v1.0.7
         with:
           profile: minimal
           toolchain: ${{ matrix.rust }}
           override: true
-      - uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505  # v1
+      - uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505  # v1.0.3
         with:
           command: check
 
   test:
+    permissions:
+      contents: read
     name: Test Suite
     runs-on: ${{ matrix.os }}
     strategy:
@@ -39,12 +45,12 @@ jobs:
         rust: [stable]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-      - uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af  # v1
+      - uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af  # v1.0.7
         with:
           profile: minimal
           toolchain: ${{ matrix.rust }}
           override: true
-      - uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505  # v1
+      - uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505  # v1.0.3
         env:
           TESTS_HF_TOKEN: ${{ secrets.HF_TOKEN }}
         with:
@@ -52,64 +58,72 @@ jobs:
           args: --workspace
 
   fmt:
+    permissions:
+      contents: read
     name: Rustfmt
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-      - uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af  # v1
+      - uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af  # v1.0.7
         with:
           profile: minimal
           toolchain: stable
           override: true
       - run: rustup component add rustfmt
-      - uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505  # v1
+      - uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505  # v1.0.3
         with:
           command: fmt
           args: --all -- --check
 
   clippy:
+    permissions:
+      contents: read
     name: Clippy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-      - uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af  # v1
+      - uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af  # v1.0.7
         with:
           profile: minimal
           toolchain: stable
           override: true
       - run: rustup component add clippy
-      - uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505  # v1
+      - uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505  # v1.0.3
         with:
           command: clippy
           args: --workspace --tests --examples -- -D warnings
 
   docs:
+    permissions:
+      contents: read
     name: Docs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-      - uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af  # v1
+      - uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af  # v1.0.7
         with:
           profile: minimal
           toolchain: stable
           override: true
-      - uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505  # v1
+      - uses: actions-rs/cargo@844f36862e911db73fe0815f00a4a2602c279505  # v1.0.3
         with:
           command: doc
           args: --workspace
 
   typos:
+    permissions:
+      contents: read
     name: Typos
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-      - uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af  # v1
+      - uses: actions-rs/toolchain@16499b5e05bf2e26879000db0c1d13f7e13fa3af  # v1.0.7
         with:
           profile: minimal
           toolchain: stable
           override: true
       - name: Typos check with custom config file
-        uses: crate-ci/typos@d43b6c087ac471e2ea7b8af622ff15f05c0c365b  # master
+        uses: crate-ci/typos@d43b6c087ac471e2ea7b8af622ff15f05c0c365b # v1.50.1
         with:
           config: .typos.toml
   
