@@ -11,8 +11,12 @@ on:
 
 name: Continuous integration
 
+permissions: {}
+
 jobs:
   check:
+    permissions:
+      contents: read
     name: Check
     runs-on: ${{ matrix.os }}
     strategy:
@@ -31,6 +35,8 @@ jobs:
           command: check
 
   test:
+    permissions:
+      contents: read
     name: Test Suite
     runs-on: ${{ matrix.os }}
     strategy:
@@ -52,6 +58,8 @@ jobs:
           args: --workspace
 
   fmt:
+    permissions:
+      contents: read
     name: Rustfmt
     runs-on: ubuntu-latest
     steps:
@@ -68,6 +76,8 @@ jobs:
           args: --all -- --check
 
   clippy:
+    permissions:
+      contents: read
     name: Clippy
     runs-on: ubuntu-latest
     steps:
@@ -84,6 +94,8 @@ jobs:
           args: --workspace --tests --examples -- -D warnings
 
   docs:
+    permissions:
+      contents: read
     name: Docs
     runs-on: ubuntu-latest
     steps:
@@ -99,6 +111,8 @@ jobs:
           args: --workspace
 
   typos:
+    permissions:
+      contents: read
     name: Typos
     runs-on: ubuntu-latest
     steps:
